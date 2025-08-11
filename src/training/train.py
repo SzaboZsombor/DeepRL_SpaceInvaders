@@ -8,9 +8,14 @@ import agent
 import environment
 from plot import plot_training_progress
 
+LEARNING_RATE = 1e-4
+GAMMA = 0.99
+TAU = 1e-3
+BATCH_SIZE = 64
+
 env = environment.SpaceInvadersEnv()
 
-agent = agent.Agent(action_space_size=env.action_space.n)
+agent = agent.Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE)
 agent.local_model.load_model_weights("best_model.pth")
 
 def get_eps(step, decay_rate=0.999999, min_eps=0.1, starting_eps=1.0):
