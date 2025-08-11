@@ -1,6 +1,8 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils import get_model_path
 
 
 class DQNNetwork(nn.Module):
@@ -25,5 +27,17 @@ class DQNNetwork(nn.Module):
         x = self.fc2(x)
         return x
     
-    def save_model_weights(self, file_path):
+    def save_model_weights(self, file_name):
+        file_path = get_model_path(file_name)
+        
         torch.save(self.state_dict(), file_path)
+        print(f"Model weights saved to {file_path}")
+
+    def load_model_weights(self, file_name):
+        file_path = get_model_path(file_name)
+
+        if os.path.exists(file_path):
+            self.load_state_dict(torch.load(file_path, map_location=torch.device('cpu')))
+            print(f"Model weights loaded successfully from {file_path}")
+        else:
+            print(f"Model weights file {file_path} does not exist.")
