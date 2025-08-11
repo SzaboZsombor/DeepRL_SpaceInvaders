@@ -1,10 +1,14 @@
 import numpy as np
+import os
 import sys
-sys.path.append("..")  # Add the parent directory to the path
+
+# Add current directory to path so we can import utils
+sys.path.insert(0, os.path.dirname(__file__))
+import utils
 
 import agent
 import environment
-from training.plot import plot_training_progress
+import plot
 
 env = environment.SpaceInvadersEnv()
 agent = agent.Agent(action_space_size=env.action_space.n)
@@ -35,4 +39,7 @@ def train_agent(episodes=1000, max_steps=10000):
 def main():
     print("Starting training...")
     scores = train_agent()
-    plot_training_progress(scores)
+    plot.plot_training_progress(scores)
+
+if __name__ == "__main__":
+    main()
