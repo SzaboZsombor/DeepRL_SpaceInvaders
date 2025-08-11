@@ -6,9 +6,9 @@ class SpaceInvadersEnv:
 
         print(f"Initializing environment: {env_id}")
 
-        self.env = gym.make(env_id, render_mode=render_mode)
+        self.env = gym.make(env_id, render_mode=render_mode, frameskip=1)
 
-        self.env = AtariPreprocessing(self.env)
+        self.env = AtariPreprocessing(self.env, frame_skip=4)
 
         self.env = FrameStack(self.env, num_stack=4)
 
@@ -47,6 +47,8 @@ if __name__ == '__main__':
         action = env_manager.action_space.sample()  # Take a random action
         observation, reward, done, truncated, info = env_manager.step(action)
         total_reward += reward
+
+        print(observation)
         
     print(f"Test run finished. Total reward: {total_reward}")
     env_manager.close()
