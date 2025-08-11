@@ -1,3 +1,5 @@
+models/
+plots/
 *.pdf
 
 # Byte-compiled / optimized / DLL files

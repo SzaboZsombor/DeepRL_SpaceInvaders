@@ -19,3 +19,9 @@ def get_logs_dir():
     logs_dir = os.path.join(get_project_root(), 'logs')
     os.makedirs(logs_dir, exist_ok=True)
     return logs_dir
+
+def get_plots_dir():
+    """Get the plots directory, create if it doesn't exist."""
+    plots_dir = os.path.join(get_project_root(), 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    return plots_dir

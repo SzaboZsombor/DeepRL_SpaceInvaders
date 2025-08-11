@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import agent
 import environment
@@ -22,7 +22,7 @@ def train_agent(episodes=1000, max_steps=10000, weights_output_name="best_model.
     scores = []
 
     for episode in range(episodes):
-        
+
         state, _ = env.reset()
         total_reward = 0
 

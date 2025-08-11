@@ -2,10 +2,10 @@ import torch
 import torch.nn.functional as F
 from model import DQNNetwork
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
 import random
 import numpy as np
 from collections import deque
+
 
 CAPACITY = 100000
 GAMMA = 0.99
@@ -15,7 +15,6 @@ LEARNING_RATE = 0.00025
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
-
 
 class ReplayBuffer:
 
@@ -52,7 +51,7 @@ class Agent:
         self.target_model = DQNNetwork(action_space_size).to(device)
         self.optimizer = optim.Adam(self.local_model.parameters(), lr=learning_rate)
 
-        self.scaler = GradScaler(enabled=(device.type == 'cuda'))
+        self.scaler = torch.amp.GradScaler(enabled=(device.type == 'cuda'))
         self.optimizer.zero_grad()
 
         self.memory = ReplayBuffer(CAPACITY)
@@ -100,14 +99,13 @@ class Agent:
 
         dones = torch.from_numpy(np.array(dones)).float().to(device)
 
-        with autocast(device_type=device.type, enabled=(device.type == 'cuda')):
-
-            Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-
+        with torch.no_grad():
             best_actions_next = self.local_model(next_states).argmax(1).unsqueeze(1)
             Q_targets_next = self.target_model(next_states).gather(1, best_actions_next).squeeze(1)
             Q_target_expected = rewards + (1 - dones) * gamma * Q_targets_next
 
+        with torch.amp.autocast(device_type=device.type, enabled=(device.type == 'cuda')):
+            Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
             loss = F.mse_loss(Q_expected, Q_target_expected)
 
         self.optimizer.zero_grad()

@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from utils import get_plots_dir
 
-def plot_training_progress(episode_rewards, moving_average_window=100):
+def plot_training_progress(episode_rewards, moving_average_window=100, file_name=None):
     plt.figure(figsize=(12, 6))
     plt.title("Training Progress")
     plt.xlabel("Episode")
@@ -16,4 +17,11 @@ def plot_training_progress(episode_rewards, moving_average_window=100):
         plt.plot(np.arange(moving_average_window-1, len(episode_rewards)), moving_avg, label="Moving Average", color="orange")
 
     plt.legend()
+    
+    if file_name:
+        file_path = f"{get_plots_dir()}/{file_name}.png"
+        plt.tight_layout()
+        plt.savefig(file_path)
+        print(f"Plot saved to {file_path}")
+
     plt.show()
