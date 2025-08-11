@@ -25,3 +25,7 @@ def get_plots_dir():
     plots_dir = os.path.join(get_project_root(), 'plots')
     os.makedirs(plots_dir, exist_ok=True)
     return plots_dir
+
+def get_study_storage_path(filename):
+    """Get the path for the Optuna study storage."""
+    return os.path.join(get_logs_dir(), filename)
