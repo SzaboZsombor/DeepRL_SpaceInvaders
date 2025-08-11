@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from model import DQNNetwork
+from model import DuelingDQNNetwork
 import torch.optim as optim
 import random
 import numpy as np
@@ -47,8 +47,8 @@ class Agent:
 
         self.action_space_size = action_space_size
 
-        self.local_model = DQNNetwork(action_space_size).to(device)
-        self.target_model = DQNNetwork(action_space_size).to(device)
+        self.local_model = DuelingDQNNetwork(action_space_size).to(device)
+        self.target_model = DuelingDQNNetwork(action_space_size).to(device)
         self.optimizer = optim.Adam(self.local_model.parameters(), lr=learning_rate)
 
         self.scaler = torch.amp.GradScaler(enabled=(device.type == 'cuda'))
