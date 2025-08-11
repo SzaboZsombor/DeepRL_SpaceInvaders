@@ -24,3 +24,6 @@ class DQNNetwork(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+    
+    def save_model_weights(self, file_path):
+        torch.save(self.state_dict(), file_path)
