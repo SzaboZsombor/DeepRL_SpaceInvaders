@@ -43,7 +43,7 @@ class ReplayBuffer:
 
 class Agent:
 
-    def __init__(self, action_space_size, learning_rate=LEARNING_RATE):
+    def __init__(self, action_space_size, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE):
 
         self.action_space_size = action_space_size
 
@@ -56,14 +56,17 @@ class Agent:
 
         self.memory = ReplayBuffer(CAPACITY)
         self.time_step = 0
+        self.gamma = gamma
+        self.tau = tau
+        self.batch_size = batch_size
 
     def step(self, state, action, reward, next_state, done):
 
         self.memory.push((state, action, reward, next_state, done))
 
         if len(self.memory) > 5000 and self.time_step % 4 == 0:
-            batch = self.memory.sample(BATCH_SIZE)
-            self.learn(batch, GAMMA)
+            batch = self.memory.sample(self.batch_size)
+            self.learn(batch)
 
         self.time_step += 1
 
@@ -81,7 +84,7 @@ class Agent:
         return action
     
 
-    def learn(self, experiences, gamma):
+    def learn(self, experiences):
 
         states, actions, rewards, next_states, dones = experiences
 
@@ -102,7 +105,7 @@ class Agent:
         with torch.no_grad():
             best_actions_next = self.local_model(next_states).argmax(1).unsqueeze(1)
             Q_targets_next = self.target_model(next_states).gather(1, best_actions_next).squeeze(1)
-            Q_target_expected = rewards + (1 - dones) * gamma * Q_targets_next
+            Q_target_expected = rewards + (1 - dones) * self.gamma * Q_targets_next
 
         with torch.amp.autocast(device_type=device.type, enabled=(device.type == 'cuda')):
             Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
@@ -113,8 +116,8 @@ class Agent:
         self.scaler.step(self.optimizer)
         self.scaler.update()
 
-        self.soft_update_target_network(self.local_model, self.target_model, tau=TAU)
+        self.soft_update_target_network(self.local_model, self.target_model)
 
-    def soft_update_target_network(self, local_model, target_model, tau):
+    def soft_update_target_network(self, local_model, target_model):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau * local_param.data + (1 - tau) * target_param.data)
+            target_param.data.copy_(self.tau * local_param.data + (1 - self.tau) * target_param.data)

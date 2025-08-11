@@ -2,13 +2,13 @@ import gymnasium as gym
 from gymnasium.wrappers import FrameStack, AtariPreprocessing
 
 class SpaceInvadersEnv:
-    def __init__(self, env_id = "ALE/SpaceInvaders-v1", render_mode = None):
+    def __init__(self, env_id = "ALE/SpaceInvaders-v5", render_mode = None):
 
         print(f"Initializing environment: {env_id}")
 
         self.env = gym.make(env_id, render_mode=render_mode)
 
-        self.env = AtariPreprocessing(self.env, frame_skip=4)
+        self.env = AtariPreprocessing(self.env, frame_skip=1)
 
         self.env = FrameStack(self.env, num_stack=4)
 
