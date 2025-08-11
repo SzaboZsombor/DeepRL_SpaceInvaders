@@ -10,6 +10,7 @@ from collections import deque
 CAPACITY = 100000
 GAMMA = 0.99
 TAU = 0.001
+BATCH_SIZE = 64
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -42,7 +43,7 @@ class ReplayBuffer:
 
 class Agent:
     
-    def __init__(self, action_space_size, learning_rate=0.001):
+    def __init__(self, action_space_size, learning_rate=0.0001):
 
         self.action_space_size = action_space_size
 
@@ -57,7 +58,9 @@ class Agent:
 
         self.memory.push((state, action, reward, next_state, done))
 
-        self.learn()
+        if len(self.memory) > BATCH_SIZE and self.time_step % 4 == 0:
+            batch = self.memory.sample(BATCH_SIZE)
+            self.learn(batch, GAMMA)
 
         if self.time_step % 1000 == 0:
             self.target_model.load_state_dict(self.local_model.state_dict())
@@ -82,11 +85,20 @@ class Agent:
 
         states, actions, rewards, next_states, dones = experiences
 
-        states = torch.from_numpy(states).float().to(device)
-        actions = torch.from_numpy(actions).long().to(device)
-        rewards = torch.from_numpy(rewards).float().to(device)
-        next_states = torch.from_numpy(next_states).float().to(device)
-        dones = torch.from_numpy(dones).float().to(device)
+        states = torch.from_numpy(np.array(states)).float().to(device)
+        actions = torch.tensor(actions).long().to(device)
+        if states.dim() == 3:
+            states = states.unsqueeze(0)  # [1, C, H, W]
+        if actions.dim() == 0:
+            actions = actions.unsqueeze(0)  # [1]
+
+        Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        rewards = torch.from_numpy(np.array(rewards)).float().to(device)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(device)
+        if next_states.dim() == 3:
+            next_states = next_states.unsqueeze(0)
+
+        dones = torch.from_numpy(np.array(dones)).float().to(device)
 
         Q_target_expected = rewards + (1 - dones) * gamma * self.target_model(next_states).max(1)[0].detach()
         Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
