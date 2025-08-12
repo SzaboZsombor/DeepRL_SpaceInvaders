@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import numpy as np
+from tqdm import trange
 import optuna
 from optuna.storages import RDBStorage
 
@@ -43,7 +44,7 @@ def get_eps(step, decay_rate=0.999999, min_eps=0.1, starting_eps=1.0):
 
 def train_agent(agent, env, episodes, max_steps, eps_decay, min_eps, trial=None):
     scores = []
-    for episode in range(episodes):
+    for episode in trange(episodes, desc=f"Trial {trial.number if trial else '-'}"):
         state, _ = env.reset()
         total_reward = 0
         for t in range(max_steps):
@@ -74,7 +75,7 @@ def objective(trial):
         'tau': trial.suggest_float('tau', 1e-4, 1e-2, log=True),
         'epsilon_end': trial.suggest_float('epsilon_end', 0.01, 0.1),
         'epsilon_decay': trial.suggest_float('epsilon_decay', 0.999, 0.99999),
-        'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128]),
+        'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128])
     }
 
     env = SpaceInvadersEnv()
@@ -90,6 +91,7 @@ def objective(trial):
                              eps_decay=params['epsilon_decay'], 
                              min_eps=params['epsilon_end'],
                              trial=trial)
+
     except optuna.exceptions.TrialPruned:
         return trial.last_step_value
 

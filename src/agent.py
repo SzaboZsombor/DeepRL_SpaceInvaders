@@ -1,10 +1,15 @@
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
 import torch
 import torch.nn.functional as F
 from model import DuelingDQNNetwork
 import torch.optim as optim
 import random
 import numpy as np
-from collections import deque
+
+from replay import PrioritizedReplayBuffer
 
 
 CAPACITY = 100000
@@ -15,30 +20,6 @@ LEARNING_RATE = 0.00025
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
-
-class ReplayBuffer:
-
-    def __init__(self, capacity):
-
-        self.buffer = deque(maxlen=capacity)
-
-    def push(self, transition):
-
-        # The transition should be a tuple: (state, action, reward, next_state, done)
-        self.buffer.append(transition)
-
-    def sample(self, batch_size):
-
-        batch = random.sample(self.buffer, batch_size)
-
-        states, actions, rewards, next_states, dones = zip(*batch)
-
-        return (np.array(states), np.array(actions), np.array(rewards),
-                np.array(next_states), np.array(dones))
-
-    def __len__(self):
-
-        return len(self.buffer)
 
 
 class Agent:
@@ -54,7 +35,7 @@ class Agent:
         self.scaler = torch.amp.GradScaler(enabled=(device.type == 'cuda'))
         self.optimizer.zero_grad()
 
-        self.memory = ReplayBuffer(CAPACITY)
+        self.memory = PrioritizedReplayBuffer(CAPACITY)
         self.time_step = 0
         self.gamma = gamma
         self.tau = tau
@@ -86,21 +67,15 @@ class Agent:
 
     def learn(self, experiences):
 
-        states, actions, rewards, next_states, dones = experiences
+        (states, actions, rewards, next_states, dones), indices, is_weights = experiences
 
-        states = torch.from_numpy(np.array(states)).float().to(device)
-        actions = torch.tensor(actions).long().to(device)
-        if states.dim() == 3:
-            states = states.unsqueeze(0)  # [1, C, H, W]
-        if actions.dim() == 0:
-            actions = actions.unsqueeze(0)  # [1]
+        states = torch.from_numpy(np.array(states)).float().to(self.device)
+        actions = torch.tensor(actions).long().unsqueeze(1).to(self.device)
+        rewards = torch.from_numpy(np.array(rewards)).float().to(self.device)
+        next_states = torch.from_numpy(np.array(next_states)).float().to(self.device)
+        dones = torch.from_numpy(np.array(dones)).float().to(self.device)
+        is_weights = torch.from_numpy(is_weights).float().to(self.device)
 
-        rewards = torch.from_numpy(np.array(rewards)).float().to(device)
-        next_states = torch.from_numpy(np.array(next_states)).float().to(device)
-        if next_states.dim() == 3:
-            next_states = next_states.unsqueeze(0)
-
-        dones = torch.from_numpy(np.array(dones)).float().to(device)
 
         with torch.no_grad():
             best_actions_next = self.local_model(next_states).argmax(1).unsqueeze(1)
@@ -109,12 +84,16 @@ class Agent:
 
         with torch.amp.autocast(device_type=device.type, enabled=(device.type == 'cuda')):
             Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-            loss = F.mse_loss(Q_expected, Q_target_expected)
+
+            td_errors = (Q_target_expected - Q_expected).detach()
+            loss = (is_weights * F.mse_loss(Q_expected, Q_target_expected, reduction='none')).mean()
 
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
         self.scaler.step(self.optimizer)
         self.scaler.update()
+
+        self.memory.update_priorities(indices, td_errors.cpu().numpy())
 
         self.soft_update_target_network(self.local_model, self.target_model)
 

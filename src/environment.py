@@ -8,7 +8,7 @@ class SpaceInvadersEnv:
 
         self.env = gym.make(env_id, render_mode=render_mode)
 
-        self.env = AtariPreprocessing(self.env, frame_skip=1)
+        self.env = AtariPreprocessing(self.env, frame_skip=1) #because of the v5 version it skips 4 frames by default
 
         self.env = FrameStack(self.env, num_stack=4)
 
