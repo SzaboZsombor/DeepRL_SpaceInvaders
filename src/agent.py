@@ -11,31 +11,25 @@ import numpy as np
 
 from replay import PrioritizedReplayBuffer
 
-
-CAPACITY = 100000
-GAMMA = 0.99
-TAU = 0.001
-BATCH_SIZE = 64
-LEARNING_RATE = 0.00025
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
 class Agent:
 
-    def __init__(self, action_space_size, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE):
+    def __init__(self, action_space_size, learning_rate, gamma, tau, batch_size, capacity):
 
         self.action_space_size = action_space_size
+        self.device = device
 
-        self.local_model = DuelingDQNNetwork(action_space_size).to(device)
-        self.target_model = DuelingDQNNetwork(action_space_size).to(device)
+        self.local_model = DuelingDQNNetwork(action_space_size).to(self.device)
+        self.target_model = DuelingDQNNetwork(action_space_size).to(self.device)
         self.optimizer = optim.Adam(self.local_model.parameters(), lr=learning_rate)
 
-        self.scaler = torch.amp.GradScaler(enabled=(device.type == 'cuda'))
+        self.scaler = torch.amp.GradScaler(enabled=(self.device.type == 'cuda'))
         self.optimizer.zero_grad()
 
-        self.memory = PrioritizedReplayBuffer(CAPACITY)
+        self.memory = PrioritizedReplayBuffer(capacity)
         self.time_step = 0
         self.gamma = gamma
         self.tau = tau
@@ -53,7 +47,7 @@ class Agent:
 
 
     def act(self, state, epsilon):
-        state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(device)
+        state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.device)
         self.local_model.eval()
         q_values = self.local_model(state)
         self.local_model.train()
@@ -76,14 +70,13 @@ class Agent:
         dones = torch.from_numpy(np.array(dones)).float().to(self.device)
         is_weights = torch.from_numpy(is_weights).float().to(self.device)
 
-
         with torch.no_grad():
             best_actions_next = self.local_model(next_states).argmax(1).unsqueeze(1)
             Q_targets_next = self.target_model(next_states).gather(1, best_actions_next).squeeze(1)
             Q_target_expected = rewards + (1 - dones) * self.gamma * Q_targets_next
 
-        with torch.amp.autocast(device_type=device.type, enabled=(device.type == 'cuda')):
-            Q_expected = self.local_model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        with torch.amp.autocast(device_type=self.device.type, enabled=(self.device.type == 'cuda')):
+            Q_expected = self.local_model(states).gather(1, actions).squeeze(1)
 
             td_errors = (Q_target_expected - Q_expected).detach()
             loss = (is_weights * F.mse_loss(Q_expected, Q_target_expected, reduction='none')).mean()

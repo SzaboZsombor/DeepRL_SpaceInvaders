@@ -1,6 +1,7 @@
 import numpy as np
 import random
 
+
 class SumTree:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -8,6 +9,7 @@ class SumTree:
         self.data = np.zeros(capacity, dtype=object)
         self.data_pointer = 0
         self.size = 0
+
 
     def add(self, priority, data):
         tree_idx = self.data_pointer + self.capacity - 1
@@ -19,12 +21,14 @@ class SumTree:
         if self.size < self.capacity:
             self.size += 1
 
+
     def update(self, tree_idx, priority):
         change = priority - self.tree[tree_idx]
         self.tree[tree_idx] = priority
         while tree_idx != 0:
             tree_idx = (tree_idx - 1) // 2
             self.tree[tree_idx] += change
+
 
     def get_leaf(self, value):
         parent_idx = 0
@@ -44,9 +48,11 @@ class SumTree:
         data_idx = leaf_idx - self.capacity + 1
         return leaf_idx, self.tree[leaf_idx], self.data[data_idx]
 
+
     @property
     def total_priority(self):
         return self.tree[0]
+
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, alpha=0.6, beta=0.4, beta_increment=0.001, epsilon=0.01):
@@ -57,9 +63,11 @@ class PrioritizedReplayBuffer:
         self.beta_increment = beta_increment
         self.epsilon = epsilon
 
+
     def push(self, transition):
         max_priority = np.max(self.tree.tree[-self.capacity:]) if self.tree.size > 0 else 1.0
         self.tree.add(max_priority, transition)
+
 
     def sample(self, batch_size):
         batch = []
@@ -88,10 +96,12 @@ class PrioritizedReplayBuffer:
         return (np.array(states), np.array(actions), np.array(rewards),
                 np.array(next_states), np.array(dones)), indices, weights
 
+
     def update_priorities(self, tree_indices, td_errors):
         priorities = (np.abs(td_errors) + self.epsilon) ** self.alpha
         for idx, p in zip(tree_indices, priorities):
             self.tree.update(idx, p)
+
 
     def __len__(self):
         return self.tree.size
