@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+from tqdm import trange
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -26,7 +27,7 @@ def train_agent(episodes=1000, max_steps=10000, weights_output_name="best_model.
     best_score = -np.inf
     scores = []
 
-    for episode in range(episodes):
+    for episode in trange(episodes, desc=f"Training Progress"):
 
         state, _ = env.reset()
         total_reward = 0
