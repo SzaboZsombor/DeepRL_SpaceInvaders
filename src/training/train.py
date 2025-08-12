@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import sys
+import yaml
 from tqdm import trange
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -8,15 +9,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import agent
 import environment
 from plot import plot_training_progress
+from utils import get_logs_dir
 
-LEARNING_RATE = 1e-4
-GAMMA = 0.99
-TAU = 1e-3
-BATCH_SIZE = 64
+
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
+LEARNING_RATE = config["LEARNING_RATE"]
+GAMMA = config["GAMMA"]
+TAU = config["TAU"]
+BATCH_SIZE = config["BATCH_SIZE"]
+DECAY_RATE = config["DECAY_RATE"]
+MIN_EPS = config["MIN_EPS"]
+STARTING_EPS = config["STARTING_EPS"]
+CAPACITY = config["CAPACITY"]
 
 env = environment.SpaceInvadersEnv()
 
-agent = agent.Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE)
+agent = agent.Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE, capacity=CAPACITY)
 agent.local_model.load_model_weights("best_model.pth")
 
 def get_eps(step, decay_rate=0.999999, min_eps=0.1, starting_eps=1.0):
@@ -25,7 +35,11 @@ def get_eps(step, decay_rate=0.999999, min_eps=0.1, starting_eps=1.0):
 
 def train_agent(episodes=1000, max_steps=10000, weights_output_name="best_model.pth"):
     best_score = -np.inf
-    scores = []
+
+    if os.path.exists(f"{get_logs_dir()}/training_scores.npy"):
+        scores = np.load(f"{get_logs_dir()}/training_scores.npy").tolist()
+    else:
+        scores = []
 
     for episode in trange(episodes, desc=f"Training Progress"):
 
@@ -55,7 +69,7 @@ def train_agent(episodes=1000, max_steps=10000, weights_output_name="best_model.
         scores.append(total_reward)
         print(f"Episode {episode + 1}/{episodes} - Total Reward: {total_reward}")
 
-    return np.array(scores)
+        np.save(f"{get_logs_dir()}/training_scores.npy", np.array(scores))
 
 
 def main():
@@ -63,7 +77,9 @@ def main():
 
     weights_output_name = "best_model.pth"
 
-    scores = train_agent(weights_output_name=weights_output_name)
+    train_agent(weights_output_name=weights_output_name)
+
+    scores = np.load(f"{get_logs_dir()}/training_scores.npy")
     plot_training_progress(scores)
 
 

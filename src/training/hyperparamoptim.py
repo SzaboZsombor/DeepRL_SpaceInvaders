@@ -15,6 +15,8 @@ from utils import get_model_path, get_study_storage_path
 TEMP_MODEL_FILENAME = get_model_path("temp_agent.pth")
 BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent.pth")
 
+CAPACITY = 200000
+
 
 def save_best_model_callback(study, trial):
     if study.best_trial == trial:
@@ -78,15 +80,17 @@ def objective(trial):
         'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128])
     }
 
+
     env = SpaceInvadersEnv()
     agent_instance = Agent(action_space_size=env.action_space.n,
                              learning_rate=params['learning_rate'],
                              gamma=params['gamma'],
                              tau=params['tau'],
-                             batch_size=params['batch_size'])
-    
+                             batch_size=params['batch_size'],
+                             capacity=CAPACITY)
+
     try:
-        scores = train_agent(agent=agent_instance, env=env, 
+        scores = train_agent(agent=agent_instance, env=env,
                              episodes=100, max_steps=10000,
                              eps_decay=params['epsilon_decay'], 
                              min_eps=params['epsilon_end'],
@@ -96,6 +100,7 @@ def objective(trial):
         return trial.last_step_value
 
     torch.save(agent_instance.local_model.state_dict(), TEMP_MODEL_FILENAME)
+    env.close()
     
     return np.mean(scores[-50:]) if len(scores) >= 50 else -1.0
 
