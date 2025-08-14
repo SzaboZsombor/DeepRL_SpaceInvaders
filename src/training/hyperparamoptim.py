@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from environment import SpaceInvadersEnv
 from agent import Agent
 from utils import get_model_path, get_study_storage_path
+from plot import plot_hyperparameter_optimization
 
 TEMP_MODEL_FILENAME = get_model_path("temp_agent.pth")
 BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent.pth")
@@ -111,13 +112,17 @@ def optimize_hyperparameters(n_trials=100):
     
     study = setup_study(study_name, storage_path)
     
-    study.optimize(objective, n_trials=n_trials, callbacks=[save_best_model_callback])
+    if n_trials > len(study.trials):
+        n_trials = 100 - len(study.trials)
+        study.optimize(objective, n_trials=n_trials, callbacks=[save_best_model_callback])
 
     print("\n--- Optimization Finished ---")
     print(f"Best score: {study.best_value}")
     print("Best hyperparameters found:")
     for key, value in study.best_params.items():
         print(f"  {key}: {value}")
+
+    plot_hyperparameter_optimization(study)
 
 
 def main():
