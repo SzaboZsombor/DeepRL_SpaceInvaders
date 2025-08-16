@@ -17,7 +17,7 @@ print(f"Using device: {device}")
 
 class Agent:
 
-    def __init__(self, action_space_size = None, learning_rate = None, gamma = None, tau = None, batch_size = None, capacity = None, eval_mode = False):
+    def __init__(self, action_space_size=None, learning_rate=None, gamma=None, tau=None, batch_size=None, capacity=None, eval_mode=False):
 
         self.action_space_size = action_space_size
         self.device = device
