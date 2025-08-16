@@ -17,23 +17,34 @@ print(f"Using device: {device}")
 
 class Agent:
 
-    def __init__(self, action_space_size, learning_rate, gamma, tau, batch_size, capacity):
+    def __init__(self, action_space_size = None, learning_rate = None, gamma = None, tau = None, batch_size = None, capacity = None, eval_mode = False):
 
         self.action_space_size = action_space_size
         self.device = device
 
         self.local_model = DuelingDQNNetwork(action_space_size).to(self.device)
         self.target_model = DuelingDQNNetwork(action_space_size).to(self.device)
-        self.optimizer = optim.Adam(self.local_model.parameters(), lr=learning_rate)
+        self.eval_mode = eval_mode
 
-        self.scaler = torch.amp.GradScaler(enabled=(self.device.type == 'cuda'))
-        self.optimizer.zero_grad()
+        if not eval_mode:
+            self.optimizer = optim.Adam(self.local_model.parameters(), lr=learning_rate)
 
-        self.memory = PrioritizedReplayBuffer(capacity)
-        self.time_step = 0
-        self.gamma = gamma
-        self.tau = tau
-        self.batch_size = batch_size
+            self.scaler = torch.amp.GradScaler(enabled=(self.device.type == 'cuda'))
+            self.optimizer.zero_grad()
+
+            self.memory = PrioritizedReplayBuffer(capacity)
+            self.time_step = 0
+            self.gamma = gamma
+            self.tau = tau
+            self.batch_size = batch_size
+        else:
+            self.optimizer = None
+            self.scaler = None
+            self.memory = None
+            self.time_step = None
+            self.gamma = None
+            self.tau = None
+            self.batch_size = None
 
     def step(self, state, action, reward, next_state, done):
 
@@ -46,18 +57,29 @@ class Agent:
         self.time_step += 1
 
 
-    def act(self, state, epsilon):
+    def act(self, state, epsilon = None):
         state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.device)
+
         self.local_model.eval()
-        q_values = self.local_model(state)
+        with torch.no_grad():
+            q_values = self.local_model(state)
+
         self.local_model.train()
 
-        if random.random() > epsilon:
+        if self.eval_mode:
             action = q_values.argmax().item()
+            return action
+
+
+        if epsilon is None:
+            raise ValueError("Epsilon must be provided if not in eval mode")
+
+        if random.random() > epsilon:
+            action = q_values.argmax().item()  
         else:
             action = random.randint(0, self.action_space_size - 1)
+        
         return action
-    
 
     def learn(self, experiences):
 
