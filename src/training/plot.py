@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import get_plots_dir
 import optuna
-from utils import get_plots_dir
+
+from src.utils import get_plots_dir
 
 def plot_training_progress(episode_rewards, moving_average_window=100, file_name=None):
     plt.figure(figsize=(12, 6))

@@ -2,9 +2,10 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from environment import SpaceInvadersEnv
-from agent import Agent
-import time
+from src.environment import SpaceInvadersEnv
+from src.agent import Agent
+from src.utils import get_models_dir
+
 
 def main():
     env_manager = SpaceInvadersEnv(render_mode='human')
