@@ -57,7 +57,7 @@ class Agent:
         self.time_step += 1
 
 
-    def act(self, state, epsilon = None):
+    def act(self, state, epsilon=None):
         state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.device)
 
         self.local_model.eval()
