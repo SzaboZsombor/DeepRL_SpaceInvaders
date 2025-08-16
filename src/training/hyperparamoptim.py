@@ -8,10 +8,10 @@ from optuna.storages import RDBStorage
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from environment import SpaceInvadersEnv
-from agent import Agent
-from utils import get_model_path, get_study_storage_path
-from plot import plot_hyperparameter_optimization
+from src.environment import SpaceInvadersEnv
+from src.agent import Agent
+from src.utils import get_model_path, get_study_storage_path
+from src.training.plot import plot_hyperparameter_optimization
 
 TEMP_MODEL_FILENAME = get_model_path("temp_agent.pth")
 BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent.pth")

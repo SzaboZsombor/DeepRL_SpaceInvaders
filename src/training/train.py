@@ -6,10 +6,10 @@ from tqdm import trange
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import agent
-import environment
-from plot import plot_training_progress
-from utils import get_logs_dir
+from src.agent import Agent
+from src.environment import SpaceInvadersEnv
+from src.training.plot import plot_training_progress
+from src.utils import get_logs_dir
 
 
 with open(os.path.join(os.path.dirname(__file__), "config.yaml"), "r") as f:
@@ -24,9 +24,9 @@ MIN_EPS = config["MIN_EPS"]
 STARTING_EPS = config["STARTING_EPS"]
 CAPACITY = config["CAPACITY"]
 
-env = environment.SpaceInvadersEnv()
+env = SpaceInvadersEnv()
 
-agent = agent.Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE, capacity=CAPACITY)
+agent = Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE, capacity=CAPACITY)
 agent.local_model.load_model_weights("best_ddqn_agent.pth")
 
 def get_eps(step, decay_rate, min_eps, starting_eps):
