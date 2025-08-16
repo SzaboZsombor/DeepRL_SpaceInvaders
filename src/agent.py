@@ -4,12 +4,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import torch
 import torch.nn.functional as F
-from model import DuelingDQNNetwork
 import torch.optim as optim
 import random
 import numpy as np
 
-from replay import PrioritizedReplayBuffer
+from model import DuelingDQNNetwork
+from src.replay import PrioritizedReplayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
