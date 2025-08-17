@@ -74,7 +74,7 @@ def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_
 
 def main():
     print("Starting training...")
-    episodes = 10000
+    episodes = 12000
     max_steps = 10000
 
     weights_output_name = "best_ddqn_agent.pth"
@@ -82,7 +82,7 @@ def main():
     train_agent(episodes=episodes, max_steps=max_steps, weights_output_name=weights_output_name)
 
     scores = np.load(f"{get_logs_dir()}/training_scores.npy")
-    plot_training_progress(scores)
+    plot_training_progress(scores, moving_average_window=100, file_name='training_rewards.png')
 
 
 if __name__ == "__main__":
