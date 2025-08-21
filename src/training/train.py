@@ -1,10 +1,7 @@
 import numpy as np
 import os
-import sys
 import yaml
 from tqdm import trange
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.agent import Agent
 from src.environment import create_env
@@ -40,8 +37,9 @@ def get_eps(step, decay_rate, min_eps, starting_eps):
 def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_agent.pth"):
     best_score = -np.inf
 
-    if os.path.exists(f"{get_logs_dir()}/training_scores.npy"):
-        scores = np.load(f"{get_logs_dir()}/training_scores.npy").tolist()
+    if os.path.exists(f"{get_logs_dir()}/training_game_scores.npy") and os.path.exists(f"{get_logs_dir()}/training_custom_scores.npy"):
+        scores = np.load(f"{get_logs_dir()}/training_game_scores.npy").tolist()
+        custom_scores = np.load(f"{get_logs_dir()}/training_custom_scores.npy").tolist()
     else:
         scores = []
         custom_scores = []

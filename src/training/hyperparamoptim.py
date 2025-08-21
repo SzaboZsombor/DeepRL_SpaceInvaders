@@ -1,14 +1,11 @@
 import os
-import sys
 import torch
 import numpy as np
 from tqdm import trange
 import optuna
 from optuna.storages import RDBStorage
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
-from src.environment import SpaceInvadersEnv
+from src.environment import create_env
 from src.agent import Agent
 from src.utils import get_model_path, get_study_storage_path
 from src.training.plot import plot_hyperparameter_optimization
@@ -17,6 +14,9 @@ TEMP_MODEL_FILENAME = get_model_path("temp_agent.pth")
 BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent.pth")
 
 CAPACITY = 200000
+LIFE_LOST_PENALTY = -10.0
+MISSED_SHOT_PENALTY = -1.0
+NUM_STACK = 4
 
 
 def save_best_model_callback(study, trial):
@@ -47,24 +47,33 @@ def get_eps(step, decay_rate=0.999999, min_eps=0.1, starting_eps=1.0):
 
 def train_agent(agent, env, episodes, max_steps, eps_decay, min_eps, trial=None):
     scores = []
+
     for episode in trange(episodes, desc=f"Trial {trial.number if trial else '-'}"):
         state, _ = env.reset()
-        total_reward = 0
+        total_score_reward = 0.0
+
         for t in range(max_steps):
+
             action = agent.act(state, epsilon=get_eps(agent.time_step, decay_rate=eps_decay, min_eps=min_eps))
-            next_state, reward, terminated, truncated, _ = env.step(action)
+
+            next_state, total_reward, terminated, truncated, info = env.step(action)
+
             done = terminated or truncated
-            clipped_reward = np.clip(reward, -1, 1)
-            agent.step(state, action, clipped_reward, next_state, done)
+
+            scaled_reward = np.sign(total_reward) * np.log1p(np.abs(total_reward))
+
+            agent.step(state, action, scaled_reward, next_state, done)
             state = next_state
-            total_reward += reward
+
+            total_score_reward += info.get('score_reward', 0)
+
             if done:
                 break
         
-        scores.append(total_reward)
+        scores.append(total_score_reward)
 
         if trial:
-            trial.report(total_reward, episode)
+            trial.report(total_score_reward, episode)
             if trial.should_prune():
                 raise optuna.exceptions.TrialPruned()
 
@@ -81,8 +90,7 @@ def objective(trial):
         'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128])
     }
 
-
-    env = SpaceInvadersEnv()
+    env = create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, num_stack=NUM_STACK, life_lost_penalty=LIFE_LOST_PENALTY, missed_shot_penalty=MISSED_SHOT_PENALTY)
     agent_instance = Agent(action_space_size=env.action_space.n,
                              learning_rate=params['learning_rate'],
                              gamma=params['gamma'],
@@ -126,7 +134,7 @@ def optimize_hyperparameters(n_trials=100):
 
 
 def main():
-    n_trials = 100
+    n_trials = 50
     print("Starting hyperparameter optimization...")
     optimize_hyperparameters(n_trials=n_trials)
     print("Hyperparameter optimization completed.")
