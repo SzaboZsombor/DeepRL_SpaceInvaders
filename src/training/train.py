@@ -7,7 +7,7 @@ from tqdm import trange
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.agent import Agent
-from src.environment import SpaceInvadersEnv
+from src.environment import create_env
 from src.training.plot import plot_training_progress
 from src.utils import get_logs_dir
 
@@ -23,8 +23,12 @@ DECAY_RATE = config["DECAY_RATE"]
 MIN_EPS = config["MIN_EPS"]
 STARTING_EPS = config["STARTING_EPS"]
 CAPACITY = config["CAPACITY"]
+NUM_STACK = config["NUM_STACK"]
+LIFE_LOST_PENALTY = config["LIFE_LOST_PENALTY"]
+MISSED_SHOT_PENALTY = config["MISSED_SHOT_PENALTY"]
 
-env = SpaceInvadersEnv()
+
+env = create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, num_stack=NUM_STACK, life_lost_penalty=LIFE_LOST_PENALTY, missed_shot_penalty=MISSED_SHOT_PENALTY)
 
 agent = Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE, capacity=CAPACITY)
 agent.local_model.load_model_weights("best_ddqn_agent.pth")
@@ -44,30 +48,34 @@ def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_
     for episode in trange(len(scores), episodes, desc="Training Progress"):
 
         state, _ = env.reset()
-        total_reward = 0
+        total_score_reward = 0.
+        total_custom_reward = 0.
 
         for t in range(max_steps):
 
             action = agent.act(state, epsilon=get_eps(agent.time_step, decay_rate=DECAY_RATE, min_eps=MIN_EPS, starting_eps=STARTING_EPS))
 
-            next_state, reward, terminated, truncated, _ = env.step(action)
+            next_state, total_reward, terminated, truncated, info = env.step(action)
 
             done = terminated or truncated
-            clipped_reward = np.clip(reward, -1, 1)
 
-            agent.step(state, action, clipped_reward, next_state, done)
+            scaled_reward = np.sign(total_reward) * np.log1p(np.abs(total_reward))
+
+            agent.step(state, action, scaled_reward, next_state, done)
             state = next_state
-            total_reward += reward
+
+            total_score_reward += info.get('score_reward', 0)
+            total_custom_reward += info.get('custom_reward', 0)
 
             if done:
                 break
 
-        if best_score < total_reward:
-            best_score = total_reward
+        if best_score < total_score_reward:
+            best_score = total_score_reward
             agent.local_model.save_model_weights(weights_output_name)
 
-        scores.append(total_reward)
-        print(f" Episode {episode + 1}/{episodes} - Total Reward: {total_reward}", flush=True)
+        scores.append(total_score_reward)
+        print(f" Episode {episode + 1}/{episodes} - Score Reward: {total_score_reward} - Custom Reward: {total_custom_reward}", flush=True)
 
         np.save(f"{get_logs_dir()}/training_scores.npy", np.array(scores))
 
