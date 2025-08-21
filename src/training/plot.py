@@ -4,19 +4,22 @@ import optuna
 
 from src.utils import get_plots_dir
 
-def plot_training_progress(episode_rewards, moving_average_window=100, file_name=None):
+def plot_training_progress(episode_rewards, episode_custom_rewards, moving_average_window=100, file_name=None):
     plt.figure(figsize=(12, 6))
     plt.title("Training Progress")
     plt.xlabel("Episode")
     plt.ylabel("Total Reward")
 
     # Plotting the raw episode rewards
-    plt.plot(episode_rewards, label="Episode Reward", color="blue")
+    plt.plot(episode_rewards, label="Game Reward", color="blue")
+    plt.plot(episode_custom_rewards, label="Custom Reward", color="green")
 
     # Plotting the moving average rewards
     if moving_average_window > 0:
         moving_avg = np.convolve(episode_rewards, np.ones(moving_average_window)/moving_average_window, mode='valid')
-        plt.plot(np.arange(moving_average_window-1, len(episode_rewards)), moving_avg, label="Moving Average", color="orange")
+        plt.plot(np.arange(moving_average_window-1, len(episode_rewards)), moving_avg, label="Game Reward Moving Average", color="orange")
+        custom_moving_avg = np.convolve(episode_custom_rewards, np.ones(moving_average_window)/moving_average_window, mode='valid')
+        plt.plot(np.arange(moving_average_window-1, len(episode_custom_rewards)), custom_moving_avg, label="Custom Reward Moving Average", color="red")
 
     plt.legend()
 

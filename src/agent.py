@@ -8,7 +8,7 @@ import torch.optim as optim
 import random
 import numpy as np
 
-from model import DuelingDQNNetwork
+from src.model import DuelingDQNNetwork
 from src.replay import PrioritizedReplayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

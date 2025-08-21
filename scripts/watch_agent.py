@@ -1,16 +1,15 @@
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from src.environment import SpaceInvadersEnv
+from src.environment import create_env
 from src.agent import Agent
-from src.utils import get_models_dir
+import time
 
 
 def main():
-    env_manager = SpaceInvadersEnv(render_mode='human')
+    env_manager = create_env(env_id="ALE/SpaceInvaders-v5", render_mode='human')
     agent = Agent(action_space_size=env_manager.action_space.n, eval_mode=True)
-    agent.local_model.load_model_weights('best_ddqn_model.pth')
+    agent.local_model.load_model_weights('best_ddqn_agent.pth')
 
     observation, info = env_manager.reset()
     done = False

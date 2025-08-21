@@ -44,6 +44,7 @@ def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_
         scores = np.load(f"{get_logs_dir()}/training_scores.npy").tolist()
     else:
         scores = []
+        custom_scores = []
 
     for episode in trange(len(scores), episodes, desc="Training Progress"):
 
@@ -75,22 +76,26 @@ def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_
             agent.local_model.save_model_weights(weights_output_name)
 
         scores.append(total_score_reward)
+        custom_scores.append(total_custom_reward)
         print(f" Episode {episode + 1}/{episodes} - Score Reward: {total_score_reward} - Custom Reward: {total_custom_reward}", flush=True)
 
-        np.save(f"{get_logs_dir()}/training_scores.npy", np.array(scores))
+        np.save(f"{get_logs_dir()}/training_custom_scores.npy", np.array(custom_scores))
+        np.save(f"{get_logs_dir()}/training_game_scores.npy", np.array(scores))
 
 
 def main():
     print("Starting training...")
-    episodes = 12000
+    episodes = 10000
     max_steps = 10000
 
     weights_output_name = "best_ddqn_agent.pth"
 
     train_agent(episodes=episodes, max_steps=max_steps, weights_output_name=weights_output_name)
 
-    scores = np.load(f"{get_logs_dir()}/training_scores.npy")
-    plot_training_progress(scores, moving_average_window=100, file_name='training_rewards.png')
+    scores = np.load(f"{get_logs_dir()}/training_game_scores.npy")
+    custom_scores = np.load(f"{get_logs_dir()}/training_custom_scores.npy")
+
+    plot_training_progress(scores, custom_scores, moving_average_window=100, file_name='training_rewards.png')
 
 
 if __name__ == "__main__":
