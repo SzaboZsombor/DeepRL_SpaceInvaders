@@ -1,0 +1,29 @@
+# Core Deep Learning and RL
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1
+gymnasium==0.28.1
+ale-py==0.8.1
+shimmy==0.2.1
+
+# Numerical Computing
+numpy==1.26.4
+scipy==1.15.2
+
+# Hyperparameter Optimization
+optuna==4.4.0
+optuna-dashboard==0.19.0
+
+# Visualization and Plotting
+matplotlib==3.9.1
+plotly==6.2.0
+
+# Progress Bars and Utilities
+tqdm==4.67.1
+pyyaml==6.0.2
+
+# Additional Dependencies
+cloudpickle==3.1.1
+scikit-learn==1.7.1
+requests==2.32.4
+pillow==11.1.0
