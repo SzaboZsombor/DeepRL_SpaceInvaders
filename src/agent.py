@@ -37,6 +37,10 @@ class Agent:
             self.gamma = gamma
             self.tau = tau
             self.batch_size = batch_size
+
+            self.last_grad_norm = 0.
+            self.last_q_value_estimate = 0.
+            self.last_loss = 0.
         else:
             self.optimizer = None
             self.scaler = None
@@ -45,6 +49,10 @@ class Agent:
             self.gamma = None
             self.tau = None
             self.batch_size = None
+
+            self.last_grad_norm = None
+            self.last_q_value_estimate = None
+            self.last_loss = None
 
     def step(self, state, action, reward, next_state, done):
 
@@ -55,7 +63,6 @@ class Agent:
             self.learn(batch)
 
         self.time_step += 1
-
 
     def act(self, state, epsilon=None):
         state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.device)
@@ -100,11 +107,17 @@ class Agent:
         with torch.amp.autocast(device_type=self.device.type, enabled=(self.device.type == 'cuda')):
             Q_expected = self.local_model(states).gather(1, actions).squeeze(1)
 
+            self.last_q_value_estimate = Q_expected.mean().item()
+
             td_errors = (Q_target_expected - Q_expected).detach()
             loss = (is_weights * F.mse_loss(Q_expected, Q_target_expected, reduction='none')).mean()
+            
+            self.last_loss = loss.item()
 
         self.optimizer.zero_grad()
         self.scaler.scale(loss).backward()
+        self.last_grad_norm = self._calculate_grad_norm()
+
         self.scaler.step(self.optimizer)
         self.scaler.update()
 
@@ -112,6 +125,22 @@ class Agent:
 
         self.soft_update_target_network(self.local_model, self.target_model)
 
+    def _calculate_grad_norm(self):
+        total_norm = 0.
+        for param in self.local_model.parameters():
+            if param.grad is not None:
+                total_norm += param.grad.data.norm(2).item() ** 2
+        return total_norm ** 0.5
+
     def soft_update_target_network(self, local_model, target_model):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(self.tau * local_param.data + (1 - self.tau) * target_param.data)
+
+    def get_grad_norm(self):
+        return self.last_grad_norm
+    
+    def get_q_value_estimate(self):
+        return self.last_q_value_estimate
+    
+    def get_loss(self):
+        return self.last_loss
