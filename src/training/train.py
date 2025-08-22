@@ -83,7 +83,7 @@ def train_agent(episodes=10000, max_steps=10000, weights_output_name="best_ddqn_
 
 def main():
     print("Starting training...")
-    episodes = 10000
+    episodes = 20000
     max_steps = 10000
 
     weights_output_name = "best_ddqn_agent.pth"

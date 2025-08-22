@@ -121,7 +121,7 @@ def optimize_hyperparameters(n_trials=100):
     study = setup_study(study_name, storage_path)
     
     if n_trials > len(study.trials):
-        n_trials = 100 - len(study.trials)
+        n_trials = n_trials - len(study.trials)
         study.optimize(objective, n_trials=n_trials, callbacks=[save_best_model_callback])
 
     print("\n--- Optimization Finished ---")
@@ -134,7 +134,7 @@ def optimize_hyperparameters(n_trials=100):
 
 
 def main():
-    n_trials = 50
+    n_trials = 100
     print("Starting hyperparameter optimization...")
     optimize_hyperparameters(n_trials=n_trials)
     print("Hyperparameter optimization completed.")
