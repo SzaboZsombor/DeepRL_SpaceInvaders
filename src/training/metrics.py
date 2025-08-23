@@ -4,37 +4,33 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from collections import deque
 import pickle
-import wandb
 import psutil
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 class MetricsTracker:
 
     def __init__(self, log_dir: str, plot_dir: str, save_frequency: int = 100,
-                 use_wandb: bool = False, wandb_project: str = None,
-                 wandb_config: Dict = None, moving_average_window: int = 100):
+                 use_tensorboard: bool = False, tensorboard_log_dir: str = None,
+                 moving_average_window: int = 100):
 
         self.log_dir = log_dir
         self.plot_dir = plot_dir
         self.save_frequency = save_frequency
-
-        self.use_wandb = use_wandb
+        self.use_tensorboard = use_tensorboard
         
-        if self.use_wandb:
-            if wandb_project is None:
-                wandb_project = "space-invaders-ddqn"
+        if self.use_tensorboard:
+            if tensorboard_log_dir is None:
+                tensorboard_log_dir = os.path.join(log_dir, "tensorboard")
             
-            wandb.init(
-                project=wandb_project,
-                config=wandb_config or {},
-                save_code=True
-            )
-            print(f"Initialized wandb project: {wandb_project}")
+            self.tensorboard_log_dir = tensorboard_log_dir
+            self.writer = SummaryWriter(log_dir=tensorboard_log_dir)
+            print(f"Initialized TensorBoard logging at: {tensorboard_log_dir}")
+            print(f"Run 'tensorboard --logdir {tensorboard_log_dir}' to view logs")
 
-        
         os.makedirs(log_dir, exist_ok=True)
         os.makedirs(plot_dir, exist_ok=True)
         
@@ -75,16 +71,252 @@ class MetricsTracker:
         self.loss_window = deque(maxlen=moving_average_window)
 
         self.hyperparams: Dict[str, Any] = {}
-        
         self.checkpoints: List[Dict] = []
         
     def log_hyperparameters(self, hyperparams: Dict[str, Any]) -> None:
-
         self.hyperparams.update(hyperparams)
 
-        if self.use_wandb:
-            wandb.config.update(hyperparams)
+        if self.use_tensorboard:
+            for key, value in hyperparams.items():
+                if isinstance(value, (int, float)):
+                    self.writer.add_scalar(f"hyperparams/{key}", value, 0)
+                else:
+                    self.writer.add_text(f"hyperparams/{key}", str(value), 0)
         
+    def save_progress(self, checkpoint_name: str = None) -> str:
+        """Save complete training progress including metrics and state"""
+        if checkpoint_name is None:
+            checkpoint_name = f"progress_episode_{len(self.episode_total_rewards)}"
+        
+        checkpoint_path = os.path.join(self.log_dir, f"{checkpoint_name}.pkl")
+        
+        progress_data = {
+            'metrics': {
+                'episode_score_rewards': self.episode_score_rewards,
+                'episode_custom_rewards': self.episode_custom_rewards,
+                'episode_total_rewards': self.episode_total_rewards,
+                'episode_lengths': self.episode_lengths,
+                'episode_losses': self.episode_losses,
+                'epsilon_values': self.epsilon_values,
+                'learning_rates': self.learning_rates,
+                'moving_avg_score_rewards': self.moving_avg_score_rewards,
+                'moving_avg_custom_rewards': self.moving_avg_custom_rewards,
+                'moving_avg_total_rewards': self.moving_avg_total_rewards,
+                'lives_lost': self.lives_lost,
+                'shots_fired': self.shots_fired,
+                'enemies_killed': self.enemies_killed,
+                'gradient_norms': self.gradient_norms,
+                'q_value_estimates': self.q_value_estimates,
+                'replay_buffer_size': self.replay_buffer_size,
+                'episode_times': self.episode_times
+            },
+            'state': {
+                'best_score_reward': self.best_score_reward,
+                'best_custom_reward': self.best_custom_reward,
+                'best_total_reward': self.best_total_reward,
+                'best_episode': self.best_episode,
+                'total_steps': self.total_steps,
+                'training_start_time': self.training_start_time.isoformat(),
+                'current_episode': len(self.episode_total_rewards),
+                'moving_avg_window_size': self.score_reward_window.maxlen
+            },
+            'config': {
+                'hyperparams': self.hyperparams,
+                'log_dir': self.log_dir,
+                'plot_dir': self.plot_dir,
+                'save_frequency': self.save_frequency,
+                'use_tensorboard': self.use_tensorboard,
+                'tensorboard_log_dir': getattr(self, 'tensorboard_log_dir', None)
+            },
+            'checkpoints': self.checkpoints,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        with open(checkpoint_path, 'wb') as f:
+            pickle.dump(progress_data, f)
+        
+        # Also save as JSON for human readability
+        json_path = os.path.join(self.log_dir, f"{checkpoint_name}.json")
+        progress_data_json = progress_data.copy()
+        progress_data_json['metrics'] = {k: list(v) if isinstance(v, (list, np.ndarray)) else v 
+                                       for k, v in progress_data['metrics'].items()}
+        
+        with open(json_path, 'w') as f:
+            json.dump(progress_data_json, f, indent=2, default=str)
+        
+        print(f"Progress saved to: {checkpoint_path}")
+        return checkpoint_path
+    
+    def load_progress(self, checkpoint_path: str = None, resume_tensorboard: bool = True) -> bool:
+        """Load training progress from checkpoint"""
+        if checkpoint_path is None:
+            # Find latest checkpoint
+            checkpoint_files = [f for f in os.listdir(self.log_dir) if f.startswith('progress_') and f.endswith('.pkl')]
+            if not checkpoint_files:
+                print("No progress checkpoints found")
+                return False
+            
+            checkpoint_files.sort(key=lambda x: os.path.getmtime(os.path.join(self.log_dir, x)))
+            checkpoint_path = os.path.join(self.log_dir, checkpoint_files[-1])
+        
+        if not os.path.exists(checkpoint_path):
+            print(f"Checkpoint not found: {checkpoint_path}")
+            return False
+        
+        try:
+            with open(checkpoint_path, 'rb') as f:
+                progress_data = pickle.load(f)
+            
+            # Restore metrics
+            for key, value in progress_data['metrics'].items():
+                if hasattr(self, key):
+                    setattr(self, key, value)
+            
+            # Restore state
+            state = progress_data['state']
+            self.best_score_reward = state['best_score_reward']
+            self.best_custom_reward = state['best_custom_reward']
+            self.best_total_reward = state['best_total_reward']
+            self.best_episode = state['best_episode']
+            self.total_steps = state['total_steps']
+            self.training_start_time = datetime.fromisoformat(state['training_start_time'])
+            
+            # Restore moving average windows
+            window_size = state.get('moving_avg_window_size', 100)
+            self.score_reward_window = deque(maxlen=window_size)
+            self.custom_reward_window = deque(maxlen=window_size)
+            self.total_reward_window = deque(maxlen=window_size)
+            self.loss_window = deque(maxlen=window_size)
+            
+            # Fill windows with recent data
+            if self.episode_score_rewards:
+                recent_episodes = min(window_size, len(self.episode_score_rewards))
+                self.score_reward_window.extend(self.episode_score_rewards[-recent_episodes:])
+                self.custom_reward_window.extend(self.episode_custom_rewards[-recent_episodes:])
+                self.total_reward_window.extend(self.episode_total_rewards[-recent_episodes:])
+                self.loss_window.extend(self.episode_losses[-recent_episodes:])
+            
+            # Restore config
+            config = progress_data.get('config', {})
+            self.hyperparams = config.get('hyperparams', {})
+            self.checkpoints = progress_data.get('checkpoints', [])
+            
+            # Resume TensorBoard if requested
+            if resume_tensorboard and self.use_tensorboard:
+                self._resume_tensorboard_logging()
+            
+            current_episode = state.get('current_episode', len(self.episode_total_rewards))
+            print(f"Progress loaded from: {checkpoint_path}")
+            print(f"Resumed from episode {current_episode} with {self.total_steps} total steps")
+            return True
+            
+        except Exception as e:
+            print(f"Error loading progress: {e}")
+            return False
+    
+    def _resume_tensorboard_logging(self):
+        """Resume TensorBoard logging with historical data"""
+        if not self.use_tensorboard or not hasattr(self, 'writer'):
+            return
+        
+        print("Resuming TensorBoard with historical data...")
+        
+        # Log all historical episode data
+        for i, (score_reward, custom_reward, total_reward, length, loss, epsilon, episode_time) in enumerate(
+            zip(self.episode_score_rewards, self.episode_custom_rewards, self.episode_total_rewards,
+                self.episode_lengths, self.episode_losses, self.epsilon_values, self.episode_times)):
+            
+            episode = i + 1
+            self.writer.add_scalar("episode/score_reward", score_reward, episode)
+            self.writer.add_scalar("episode/custom_reward", custom_reward, episode)
+            self.writer.add_scalar("episode/total_reward", total_reward, episode)
+            self.writer.add_scalar("episode/length", length, episode)
+            self.writer.add_scalar("episode/loss", loss, episode)
+            self.writer.add_scalar("episode/epsilon", epsilon, episode)
+            self.writer.add_scalar("episode/time", episode_time, episode)
+            
+            # Log moving averages
+            if i < len(self.moving_avg_score_rewards):
+                self.writer.add_scalar("moving_average/score_reward", self.moving_avg_score_rewards[i], episode)
+                self.writer.add_scalar("moving_average/custom_reward", self.moving_avg_custom_rewards[i], episode)
+                self.writer.add_scalar("moving_average/total_reward", self.moving_avg_total_rewards[i], episode)
+            
+            # Log game metrics if available
+            if i < len(self.lives_lost):
+                self.writer.add_scalar("game_metrics/lives_lost", self.lives_lost[i], episode)
+            if i < len(self.shots_fired):
+                self.writer.add_scalar("game_metrics/shots_fired", self.shots_fired[i], episode)
+            if i < len(self.enemies_killed):
+                self.writer.add_scalar("game_metrics/enemies_killed", self.enemies_killed[i], episode)
+            
+            # Log learning rate if available
+            if i < len(self.learning_rates):
+                self.writer.add_scalar("training/learning_rate", self.learning_rates[i], episode)
+        
+        # Log hyperparameters
+        for key, value in self.hyperparams.items():
+            if isinstance(value, (int, float)):
+                self.writer.add_scalar(f"hyperparams/{key}", value, 0)
+            else:
+                self.writer.add_text(f"hyperparams/{key}", str(value), 0)
+        
+        print("TensorBoard logging resumed successfully")
+    
+    def auto_save_progress(self) -> None:
+        """Automatically save progress during training"""
+        if len(self.episode_total_rewards) % self.save_frequency == 0:
+            episode = len(self.episode_total_rewards)
+            self.save_progress(f"auto_save_episode_{episode}")
+    
+    def get_checkpoint_info(self) -> List[Dict]:
+        """Get information about available checkpoints"""
+        checkpoint_files = [f for f in os.listdir(self.log_dir) if f.startswith('progress_') and f.endswith('.pkl')]
+        
+        checkpoints = []
+        for file in checkpoint_files:
+            file_path = os.path.join(self.log_dir, file)
+            try:
+                with open(file_path, 'rb') as f:
+                    data = pickle.load(f)
+                
+                checkpoints.append({
+                    'file': file,
+                    'path': file_path,
+                    'episode': data['state'].get('current_episode', 0),
+                    'total_steps': data['state'].get('total_steps', 0),
+                    'best_total_reward': data['state'].get('best_total_reward', 0),
+                    'timestamp': data.get('timestamp', 'unknown'),
+                    'size_mb': os.path.getsize(file_path) / (1024 * 1024)
+                })
+            except Exception as e:
+                print(f"Error reading checkpoint {file}: {e}")
+        
+        return sorted(checkpoints, key=lambda x: x['episode'], reverse=True)
+    
+    def cleanup_old_checkpoints(self, keep_last_n: int = 5) -> None:
+        """Clean up old checkpoint files, keeping only the most recent ones"""
+        checkpoints = self.get_checkpoint_info()
+        
+        if len(checkpoints) <= keep_last_n:
+            return
+        
+        to_delete = checkpoints[keep_last_n:]
+        deleted_count = 0
+        
+        for checkpoint in to_delete:
+            try:
+                os.remove(checkpoint['path'])
+                # Also remove corresponding JSON file if it exists
+                json_path = checkpoint['path'].replace('.pkl', '.json')
+                if os.path.exists(json_path):
+                    os.remove(json_path)
+                deleted_count += 1
+            except Exception as e:
+                print(f"Error deleting checkpoint {checkpoint['file']}: {e}")
+        
+        if deleted_count > 0:
+            print(f"Cleaned up {deleted_count} old checkpoint files")
+    
     def log_episode(self, episode: int, score_reward: float, custom_reward: float, length: int, 
                    loss: float, epsilon: float, episode_time: float,
                    lives_lost: int = 0, shots_fired: int = 0, 
@@ -130,35 +362,31 @@ class MetricsTracker:
         
         self.total_steps += length
 
-        if self.use_wandb:
-            wandb_metrics = {
-                "episode": episode,
-                "score_reward": score_reward,
-                "custom_reward": custom_reward,
-                "total_reward": total_reward,
-                "episode_length": length,
-                "loss": loss,
-                "epsilon": epsilon,
-                "episode_time": episode_time,
-                "moving_avg_score_reward": moving_avg_score,
-                "moving_avg_custom_reward": moving_avg_custom,
-                "moving_avg_total_reward": moving_avg_total,
-                "best_score_reward": self.best_score_reward,
-                "best_custom_reward": self.best_custom_reward,
-                "best_total_reward": self.best_total_reward,
-                "total_steps": self.total_steps,
-                "lives_lost": lives_lost,
-                "shots_fired": shots_fired,
-                "enemies_killed": enemies_killed
-            }
+        if self.use_tensorboard:
+            self.writer.add_scalar("episode/score_reward", score_reward, episode)
+            self.writer.add_scalar("episode/custom_reward", custom_reward, episode)
+            self.writer.add_scalar("episode/total_reward", total_reward, episode)
+            self.writer.add_scalar("episode/length", length, episode)
+            self.writer.add_scalar("episode/loss", loss, episode)
+            self.writer.add_scalar("episode/epsilon", epsilon, episode)
+            self.writer.add_scalar("episode/time", episode_time, episode)
+            self.writer.add_scalar("moving_average/score_reward", moving_avg_score, episode)
+            self.writer.add_scalar("moving_average/custom_reward", moving_avg_custom, episode)
+            self.writer.add_scalar("moving_average/total_reward", moving_avg_total, episode)
+            self.writer.add_scalar("best/score_reward", self.best_score_reward, episode)
+            self.writer.add_scalar("best/custom_reward", self.best_custom_reward, episode)
+            self.writer.add_scalar("best/total_reward", self.best_total_reward, episode)
+            self.writer.add_scalar("total_steps", self.total_steps, episode)
+            self.writer.add_scalar("game_metrics/lives_lost", lives_lost, episode)
+            self.writer.add_scalar("game_metrics/shots_fired", shots_fired, episode)
+            self.writer.add_scalar("game_metrics/enemies_killed", enemies_killed, episode)
             
             if learning_rate is not None:
-                wandb_metrics["learning_rate"] = learning_rate
-                
-            wandb.log(wandb_metrics, step=episode)
+                self.writer.add_scalar("training/learning_rate", learning_rate, episode)
         
         if episode % self.save_frequency == 0:
             self.save_metrics()
+            self.auto_save_progress()
             
     def log_training_step(self, gradient_norm: float = None, 
                          q_value_estimate: float = None,
@@ -172,17 +400,13 @@ class MetricsTracker:
             self.replay_buffer_size.append(replay_buffer_size)
 
 
-        if self.use_wandb and step is not None:
-            wandb_metrics = {}
+        if self.use_tensorboard and step is not None:
             if gradient_norm is not None:
-                wandb_metrics["gradient_norm"] = gradient_norm
+                self.writer.add_scalar("training/gradient_norm", gradient_norm, step)
             if q_value_estimate is not None:
-                wandb_metrics["q_value_estimate"] = q_value_estimate
+                self.writer.add_scalar("training/q_value_estimate", q_value_estimate, step)
             if replay_buffer_size is not None:
-                wandb_metrics["replay_buffer_size"] = replay_buffer_size
-            
-            if wandb_metrics:
-                wandb.log(wandb_metrics, step=step)
+                self.writer.add_scalar("training/replay_buffer_size", replay_buffer_size, step)
     
     def log_checkpoint(self, episode: int, model_path: str, 
                       total_reward: float, is_best: bool = False) -> None:
@@ -196,21 +420,9 @@ class MetricsTracker:
         }
         self.checkpoints.append(checkpoint_info)
 
-        if self.use_wandb:
-            wandb.log({
-                "checkpoint_reward": total_reward,
-                "checkpoint_episode": episode,
-                "is_best_checkpoint": is_best
-            }, step=episode)
-            
-            if is_best:
-                artifact = wandb.Artifact(
-                    name=f"best_model_episode_{episode}",
-                    type="model",
-                    description=f"Best model at episode {episode} with total reward {total_reward:.2f}"
-                )
-                artifact.add_file(model_path)
-                wandb.log_artifact(artifact)
+        if self.use_tensorboard:
+            self.writer.add_scalar("checkpoint/reward", total_reward, episode)
+            self.writer.add_scalar("checkpoint/is_best", int(is_best), episode)
     
     def get_current_stats(self, window_size: int = 100) -> Dict[str, float]:
 
@@ -404,22 +616,24 @@ class MetricsTracker:
         
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
 
-        if self.use_wandb:
-            wandb.log({"training_progress_plot": wandb.Image(save_path)})
+        if self.use_tensorboard:
+            img = plt.imread(save_path)
+            self.writer.add_image("training_progress", img, len(self.episode_total_rewards), dataformats='HWC')
         
         plt.show()
 
     def log_system_metrics(self, episode: int) -> None:
-        if self.use_wandb and episode % 100 == 0:
-            wandb.log({
-                "cpu_percent": psutil.cpu_percent(),
-                "memory_percent": psutil.virtual_memory().percent,
-                "gpu_memory_used": torch.cuda.memory_allocated() / 1024**3 if torch.cuda.is_available() else 0
-            }, step=episode)
+        if self.use_tensorboard and episode % 100 == 0:
+            self.writer.add_scalar("system/cpu_percent", psutil.cpu_percent(), episode)
+            self.writer.add_scalar("system/memory_percent", psutil.virtual_memory().percent, episode)
+            if torch.cuda.is_available():
+                self.writer.add_scalar("system/gpu_memory_used_gb", torch.cuda.memory_allocated() / 1024**3, episode)
 
-    def finish_wandb(self):
-        if self.use_wandb:
-            wandb.finish()
+    def close_tensorboard(self):
+        if self.use_tensorboard and hasattr(self, 'writer'):
+            # Save final progress before closing
+            self.save_progress("final_progress")
+            self.writer.close()
     
     def generate_training_report(self) -> str:
         stats = self.get_current_stats()

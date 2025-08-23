@@ -10,8 +10,8 @@ from src.agent import Agent
 from src.utils import get_model_path, get_study_storage_path
 from src.training.plot import plot_hyperparameter_optimization
 
-TEMP_MODEL_FILENAME = get_model_path("temp_agent.pth")
-BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent.pth")
+TEMP_MODEL_FILENAME = get_model_path("temp_agent_hyperparam_optim.pth")
+BEST_MODEL_FILENAME = get_model_path("best_ddqn_agent_hyperparam_optim.pth")
 
 CAPACITY = 200000
 LIFE_LOST_PENALTY = -10.0

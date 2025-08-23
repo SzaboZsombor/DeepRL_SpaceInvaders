@@ -3,6 +3,7 @@ import os
 import yaml
 from tqdm import trange
 import time
+import torch
 
 from src.agent import Agent
 from src.environment import create_env
@@ -35,25 +36,56 @@ agent.local_model.load_model_weights("best_ddqn_agent.pth")
 metrics = MetricsTracker(
     log_dir=get_logs_dir(),
     plot_dir=get_plots_dir(), 
-    use_wandb=True,
-    wandb_project="space-invaders-ddqn"
+    use_tensorboard=True,
+    tensorboard_log_dir=os.path.join(get_logs_dir(), "tensorboard")
 )
 
 def get_eps(step: int, decay_rate: float, min_eps: float, starting_eps: float) -> float:
     return max(min_eps, starting_eps * (decay_rate ** step))
 
 
-def train_agent(episodes: int = 10000, max_steps: int = 10000, weights_output_name: str = "best_ddqn_agent.pth") -> MetricsTracker:
+def load_training_state(metrics, agent):
     best_score = -np.inf
+    start_episode = 0
+    scores = []
+    custom_scores = []
 
-    if os.path.exists(f"{get_logs_dir()}/training_game_scores.npy") and os.path.exists(f"{get_logs_dir()}/training_custom_scores.npy"):
-        scores = np.load(f"{get_logs_dir()}/training_game_scores.npy").tolist()
-        custom_scores = np.load(f"{get_logs_dir()}/training_custom_scores.npy").tolist()
+    progress_loaded = metrics.load_progress()
+    
+    if progress_loaded:
+        start_episode = len(metrics.episode_score_rewards)
+        best_score = metrics.best_score_reward
+        print(f"Automatically resumed training from episode {start_episode + 1}")
+        print(f"Current best score: {best_score}")
+        
+        scores = metrics.episode_score_rewards.copy()
+        custom_scores = metrics.episode_custom_rewards.copy()
     else:
-        scores = []
-        custom_scores = []
+        if os.path.exists(f"{get_logs_dir()}/training_game_scores.npy") and os.path.exists(f"{get_logs_dir()}/training_custom_scores.npy"):
+            scores = np.load(f"{get_logs_dir()}/training_game_scores.npy").tolist()
+            custom_scores = np.load(f"{get_logs_dir()}/training_custom_scores.npy").tolist()
+            start_episode = len(scores)
+            best_score = max(scores) if scores else -np.inf
+            print(f"Resuming training from legacy files - episode {start_episode + 1}")
+            print(f"Current best score: {best_score}")
+        else:
+            print("Starting fresh training")
 
-    for episode in trange(len(scores), episodes, desc="Training Progress"):
+    agent_checkpoint_path = f"{get_logs_dir()}/agent_checkpoint.pth"
+    if os.path.exists(agent_checkpoint_path):
+        checkpoint = torch.load(agent_checkpoint_path)
+        agent.time_step = checkpoint.get('time_step', 0)
+        print(f"Resumed agent from step: {agent.time_step}")
+
+    return best_score, start_episode, scores, custom_scores
+
+
+def train_agent(episodes: int = 10000, max_steps: int = 10000, weights_output_name: str = "best_ddqn_agent.pth") -> MetricsTracker:
+    best_score, start_episode, scores, custom_scores = load_training_state(metrics, agent)
+
+    agent_checkpoint_path = f"{get_logs_dir()}/agent_checkpoint.pth"
+
+    for episode in trange(start_episode, episodes, desc="Training Progress"):
         episode_start_time = time.time()
 
         state, _ = env.reset()
@@ -117,17 +149,30 @@ def train_agent(episodes: int = 10000, max_steps: int = 10000, weights_output_na
             metrics.log_checkpoint(
                 episode=episode,
                 model_path=weights_output_name,
-                score_reward=total_score_reward,
-                custom_reward=total_custom_reward,
+                total_reward=total_score_reward, 
                 is_best=True
             )
 
-        scores.append(total_score_reward)
-        custom_scores.append(total_custom_reward)
+
+        if episode >= len(scores):
+            scores.append(total_score_reward)
+            custom_scores.append(total_custom_reward)
+        else:
+            scores[episode] = total_score_reward
+            custom_scores[episode] = total_custom_reward
+        
         print(f" Episode {episode + 1}/{episodes} - Score Reward: {total_score_reward} - Custom Reward: {total_custom_reward}", flush=True)
 
         np.save(f"{get_logs_dir()}/training_custom_scores.npy", np.array(custom_scores))
         np.save(f"{get_logs_dir()}/training_game_scores.npy", np.array(scores))
+
+        torch.save({
+            'time_step': agent.time_step,
+            'episode': episode,
+            'best_score': best_score
+        }, agent_checkpoint_path)
+
+        metrics.auto_save_progress()
     
     return metrics
 
@@ -158,15 +203,15 @@ def main():
     
     metrics.log_hyperparameters(hyperparams)
 
-    metrics = train_agent(episodes=episodes, max_steps=max_steps, weights_output_name=weights_output_name)
+    final_metrics = train_agent(episodes=episodes, max_steps=max_steps, weights_output_name=weights_output_name)
 
-    report = metrics.generate_training_report()
+    report = final_metrics.generate_training_report()
     print(report)
 
     training_metrics_plot_path = os.path.join(get_plots_dir(), 'training_progress.png')
-    metrics.plot_training_progress(save_path=training_metrics_plot_path)
+    final_metrics.plot_training_progress(save_path=training_metrics_plot_path)
 
-    metrics.finish_wandb()
+    final_metrics.close_tensorboard()
 
 if __name__ == "__main__":
     main()
