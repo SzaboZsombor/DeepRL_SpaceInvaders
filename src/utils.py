@@ -29,3 +29,9 @@ def get_plots_dir():
 def get_study_storage_path(filename):
     """Get the path for the Optuna study storage."""
     return os.path.join(get_logs_dir(), filename)
+
+def get_tensorboard_logs_dir():
+    """Get an ASCII-safe directory for TensorBoard logs."""
+    tb_logs_dir = "C:/temp/tensorboard_logs"
+    os.makedirs(tb_logs_dir, exist_ok=True)
+    return tb_logs_dir

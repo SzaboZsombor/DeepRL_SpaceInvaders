@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from collections import deque
 import pickle
 import psutil
@@ -84,7 +84,6 @@ class MetricsTracker:
                     self.writer.add_text(f"hyperparams/{key}", str(value), 0)
         
     def save_progress(self, checkpoint_name: str = None) -> str:
-        """Save complete training progress including metrics and state"""
         if checkpoint_name is None:
             checkpoint_name = f"progress_episode_{len(self.episode_total_rewards)}"
         
@@ -135,7 +134,6 @@ class MetricsTracker:
         with open(checkpoint_path, 'wb') as f:
             pickle.dump(progress_data, f)
         
-        # Also save as JSON for human readability
         json_path = os.path.join(self.log_dir, f"{checkpoint_name}.json")
         progress_data_json = progress_data.copy()
         progress_data_json['metrics'] = {k: list(v) if isinstance(v, (list, np.ndarray)) else v 
@@ -150,7 +148,7 @@ class MetricsTracker:
     def load_progress(self, checkpoint_path: str = None, resume_tensorboard: bool = True) -> bool:
         """Load training progress from checkpoint"""
         if checkpoint_path is None:
-            # Find latest checkpoint
+            #finding latest checkpoint
             checkpoint_files = [f for f in os.listdir(self.log_dir) if f.startswith('progress_') and f.endswith('.pkl')]
             if not checkpoint_files:
                 print("No progress checkpoints found")
@@ -167,12 +165,12 @@ class MetricsTracker:
             with open(checkpoint_path, 'rb') as f:
                 progress_data = pickle.load(f)
             
-            # Restore metrics
+            # Restoring metrics
             for key, value in progress_data['metrics'].items():
                 if hasattr(self, key):
                     setattr(self, key, value)
             
-            # Restore state
+            # Restoring state
             state = progress_data['state']
             self.best_score_reward = state['best_score_reward']
             self.best_custom_reward = state['best_custom_reward']
@@ -181,14 +179,14 @@ class MetricsTracker:
             self.total_steps = state['total_steps']
             self.training_start_time = datetime.fromisoformat(state['training_start_time'])
             
-            # Restore moving average windows
+            # Restoring moving average windows data
             window_size = state.get('moving_avg_window_size', 100)
             self.score_reward_window = deque(maxlen=window_size)
             self.custom_reward_window = deque(maxlen=window_size)
             self.total_reward_window = deque(maxlen=window_size)
             self.loss_window = deque(maxlen=window_size)
             
-            # Fill windows with recent data
+            # Filling windows with recent data
             if self.episode_score_rewards:
                 recent_episodes = min(window_size, len(self.episode_score_rewards))
                 self.score_reward_window.extend(self.episode_score_rewards[-recent_episodes:])
@@ -196,12 +194,11 @@ class MetricsTracker:
                 self.total_reward_window.extend(self.episode_total_rewards[-recent_episodes:])
                 self.loss_window.extend(self.episode_losses[-recent_episodes:])
             
-            # Restore config
+            # Restoring config
             config = progress_data.get('config', {})
             self.hyperparams = config.get('hyperparams', {})
             self.checkpoints = progress_data.get('checkpoints', [])
             
-            # Resume TensorBoard if requested
             if resume_tensorboard and self.use_tensorboard:
                 self._resume_tensorboard_logging()
             
@@ -215,13 +212,11 @@ class MetricsTracker:
             return False
     
     def _resume_tensorboard_logging(self):
-        """Resume TensorBoard logging with historical data"""
         if not self.use_tensorboard or not hasattr(self, 'writer'):
             return
         
         print("Resuming TensorBoard with historical data...")
         
-        # Log all historical episode data
         for i, (score_reward, custom_reward, total_reward, length, loss, epsilon, episode_time) in enumerate(
             zip(self.episode_score_rewards, self.episode_custom_rewards, self.episode_total_rewards,
                 self.episode_lengths, self.episode_losses, self.epsilon_values, self.episode_times)):
@@ -235,25 +230,20 @@ class MetricsTracker:
             self.writer.add_scalar("episode/epsilon", epsilon, episode)
             self.writer.add_scalar("episode/time", episode_time, episode)
             
-            # Log moving averages
             if i < len(self.moving_avg_score_rewards):
                 self.writer.add_scalar("moving_average/score_reward", self.moving_avg_score_rewards[i], episode)
                 self.writer.add_scalar("moving_average/custom_reward", self.moving_avg_custom_rewards[i], episode)
                 self.writer.add_scalar("moving_average/total_reward", self.moving_avg_total_rewards[i], episode)
             
-            # Log game metrics if available
             if i < len(self.lives_lost):
                 self.writer.add_scalar("game_metrics/lives_lost", self.lives_lost[i], episode)
             if i < len(self.shots_fired):
                 self.writer.add_scalar("game_metrics/shots_fired", self.shots_fired[i], episode)
             if i < len(self.enemies_killed):
                 self.writer.add_scalar("game_metrics/enemies_killed", self.enemies_killed[i], episode)
-            
-            # Log learning rate if available
             if i < len(self.learning_rates):
                 self.writer.add_scalar("training/learning_rate", self.learning_rates[i], episode)
         
-        # Log hyperparameters
         for key, value in self.hyperparams.items():
             if isinstance(value, (int, float)):
                 self.writer.add_scalar(f"hyperparams/{key}", value, 0)
@@ -263,13 +253,11 @@ class MetricsTracker:
         print("TensorBoard logging resumed successfully")
     
     def auto_save_progress(self) -> None:
-        """Automatically save progress during training"""
         if len(self.episode_total_rewards) % self.save_frequency == 0:
             episode = len(self.episode_total_rewards)
             self.save_progress(f"auto_save_episode_{episode}")
     
     def get_checkpoint_info(self) -> List[Dict]:
-        """Get information about available checkpoints"""
         checkpoint_files = [f for f in os.listdir(self.log_dir) if f.startswith('progress_') and f.endswith('.pkl')]
         
         checkpoints = []
@@ -294,7 +282,6 @@ class MetricsTracker:
         return sorted(checkpoints, key=lambda x: x['episode'], reverse=True)
     
     def cleanup_old_checkpoints(self, keep_last_n: int = 5) -> None:
-        """Clean up old checkpoint files, keeping only the most recent ones"""
         checkpoints = self.get_checkpoint_info()
         
         if len(checkpoints) <= keep_last_n:
@@ -306,7 +293,6 @@ class MetricsTracker:
         for checkpoint in to_delete:
             try:
                 os.remove(checkpoint['path'])
-                # Also remove corresponding JSON file if it exists
                 json_path = checkpoint['path'].replace('.pkl', '.json')
                 if os.path.exists(json_path):
                     os.remove(json_path)
@@ -631,7 +617,6 @@ class MetricsTracker:
 
     def close_tensorboard(self):
         if self.use_tensorboard and hasattr(self, 'writer'):
-            # Save final progress before closing
             self.save_progress("final_progress")
             self.writer.close()
     

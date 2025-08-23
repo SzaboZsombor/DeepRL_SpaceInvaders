@@ -7,8 +7,7 @@ import torch
 
 from src.agent import Agent
 from src.environment import create_env
-from src.training.plot import plot_training_progress
-from src.utils import get_logs_dir, get_plots_dir
+from src.utils import get_logs_dir, get_plots_dir, get_tensorboard_logs_dir
 from src.training.metrics import MetricsTracker
 
 
@@ -37,7 +36,7 @@ metrics = MetricsTracker(
     log_dir=get_logs_dir(),
     plot_dir=get_plots_dir(), 
     use_tensorboard=True,
-    tensorboard_log_dir=os.path.join(get_logs_dir(), "tensorboard")
+    tensorboard_log_dir=get_tensorboard_logs_dir()
 )
 
 def get_eps(step: int, decay_rate: float, min_eps: float, starting_eps: float) -> float:
