@@ -51,11 +51,11 @@ class SpaceInvadersEnv(gym.Wrapper):
         return self.env.close()
     
 
-def create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, num_stack=4, life_lost_penalty=-10.0, missed_shot_penalty=-1.0):
+def create_env(env_id: str = "ALE/SpaceInvaders-v5", render_mode: bool = None, frame_skip: int = 4, num_stack: int = 4, life_lost_penalty: int=-10.0, missed_shot_penalty: int=-1.0):
 
-    env = gym.make(env_id, render_mode=render_mode)
+    env = gym.make(env_id, render_mode=render_mode, frameskip=1)
 
-    env = AtariPreprocessing(env, frame_skip=1)
+    env = AtariPreprocessing(env, frame_skip=frame_skip)
     env = SpaceInvadersEnv(env, life_lost_penalty=life_lost_penalty, missed_shot_penalty=missed_shot_penalty)
     env = FrameStack(env, num_stack=num_stack)
 

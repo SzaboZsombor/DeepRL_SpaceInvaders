@@ -7,7 +7,7 @@ from src.utils import get_model_path
 
 class DuelingDQNNetwork(nn.Module):
 
-    def __init__(self, action_space_size):
+    def __init__(self, action_space_size: int):
         super(DuelingDQNNetwork, self).__init__()
         torch.random.manual_seed(0)
 
@@ -24,7 +24,7 @@ class DuelingDQNNetwork(nn.Module):
 
         self.relu = nn.ReLU()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.relu(self.bn1(self.conv1(x)))
         x = self.relu(self.bn2(self.conv2(x)))
         x = x.view(x.size(0), -1)
@@ -37,14 +37,14 @@ class DuelingDQNNetwork(nn.Module):
 
         q_vals = value + (advantage - advantage.mean(dim=1, keepdim=True))
         return q_vals
-    
-    def save_model_weights(self, file_name):
+
+    def save_model_weights(self, file_name: str):
         file_path = get_model_path(file_name)
 
         torch.save(self.state_dict(), file_path)
         print(f"Model weights saved to {file_path}")
 
-    def load_model_weights(self, file_name):
+    def load_model_weights(self, file_name: str):
         file_path = get_model_path(file_name)
 
         if os.path.exists(file_path):

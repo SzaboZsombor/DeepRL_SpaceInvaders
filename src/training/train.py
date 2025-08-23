@@ -22,12 +22,14 @@ DECAY_RATE = config["DECAY_RATE"]
 MIN_EPS = config["MIN_EPS"]
 STARTING_EPS = config["STARTING_EPS"]
 CAPACITY = config["CAPACITY"]
+FRAME_SKIP = config["FRAME_SKIP"]
 NUM_STACK = config["NUM_STACK"]
 LIFE_LOST_PENALTY = config["LIFE_LOST_PENALTY"]
 MISSED_SHOT_PENALTY = config["MISSED_SHOT_PENALTY"]
 
 
-env = create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, num_stack=NUM_STACK, life_lost_penalty=LIFE_LOST_PENALTY, missed_shot_penalty=MISSED_SHOT_PENALTY)
+
+env = create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, frame_skip=FRAME_SKIP, num_stack=NUM_STACK, life_lost_penalty=LIFE_LOST_PENALTY, missed_shot_penalty=MISSED_SHOT_PENALTY)
 
 agent = Agent(action_space_size=env.action_space.n, learning_rate=LEARNING_RATE, gamma=GAMMA, tau=TAU, batch_size=BATCH_SIZE, capacity=CAPACITY)
 agent.local_model.load_model_weights("best_ddqn_agent.pth")
@@ -43,7 +45,7 @@ def get_eps(step: int, decay_rate: float, min_eps: float, starting_eps: float) -
     return max(min_eps, starting_eps * (decay_rate ** step))
 
 
-def load_training_state(metrics, agent):
+def load_training_state(metrics: MetricsTracker, agent: Agent):
     best_score = -np.inf
     start_episode = 0
     scores = []

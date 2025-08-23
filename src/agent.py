@@ -17,7 +17,7 @@ print(f"Using device: {device}")
 
 class Agent:
 
-    def __init__(self, action_space_size=None, learning_rate=None, gamma=None, tau=None, batch_size=None, capacity=None, eval_mode=False):
+    def __init__(self, action_space_size: int = None, learning_rate: float = None, gamma: float = None, tau: float = None, batch_size: int = None, capacity: int = None, eval_mode: bool = False):
 
         self.action_space_size = action_space_size
         self.device = device
@@ -54,7 +54,7 @@ class Agent:
             self.last_q_value_estimate = None
             self.last_loss = None
 
-    def step(self, state, action, reward, next_state, done):
+    def step(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, done: bool):
 
         self.memory.push((state, action, reward, next_state, done))
 
@@ -64,7 +64,7 @@ class Agent:
 
         self.time_step += 1
 
-    def act(self, state, epsilon=None):
+    def act(self, state: np.ndarray, epsilon: float = None):
         state = torch.from_numpy(np.array(state)).float().unsqueeze(0).to(self.device)
 
         self.local_model.eval()
@@ -88,7 +88,7 @@ class Agent:
         
         return action
 
-    def learn(self, experiences):
+    def learn(self, experiences: tuple):
 
         (states, actions, rewards, next_states, dones), indices, is_weights = experiences
 

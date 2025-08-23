@@ -4,7 +4,7 @@ import optuna
 
 from src.utils import get_plots_dir
 
-def plot_training_progress(episode_rewards, episode_custom_rewards, moving_average_window=100, file_name=None):
+def plot_training_progress(episode_rewards: list[float], episode_custom_rewards: list[float], moving_average_window: int = 100, file_name: str = None):
     plt.figure(figsize=(12, 6))
     plt.title("Training Progress")
     plt.xlabel("Episode")
@@ -26,13 +26,13 @@ def plot_training_progress(episode_rewards, episode_custom_rewards, moving_avera
     if file_name:
         file_path = f"{get_plots_dir()}/{file_name}.png"
         plt.tight_layout()
-        plt.savefig(file_path)
+        plt.savefig(file_path, dpi=300, bbox_inches='tight')
         print(f"Plot saved to {file_path}")
 
     plt.show()
 
 
-def plot_hyperparameter_optimization(study):
+def plot_hyperparameter_optimization(study: optuna.Study):
     history_fig = optuna.visualization.plot_optimization_history(study)
     history_fig.show()
 

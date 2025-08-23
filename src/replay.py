@@ -3,7 +3,7 @@ import random
 
 
 class SumTree:
-    def __init__(self, capacity):
+    def __init__(self, capacity: int):
         self.capacity = capacity
         self.tree = np.zeros(2 * capacity - 1)
         self.data = np.zeros(capacity, dtype=object)
@@ -11,7 +11,7 @@ class SumTree:
         self.size = 0
 
 
-    def add(self, priority, data):
+    def add(self, priority: float, data: tuple):
         tree_idx = self.data_pointer + self.capacity - 1
         self.data[self.data_pointer] = data
         self.update(tree_idx, priority)
@@ -22,7 +22,7 @@ class SumTree:
             self.size += 1
 
 
-    def update(self, tree_idx, priority):
+    def update(self, tree_idx: int, priority: float):
         change = priority - self.tree[tree_idx]
         self.tree[tree_idx] = priority
         while tree_idx != 0:
@@ -30,7 +30,7 @@ class SumTree:
             self.tree[tree_idx] += change
 
 
-    def get_leaf(self, value):
+    def get_leaf(self, value: float):
         parent_idx = 0
         while True:
             left_child_idx = 2 * parent_idx + 1
@@ -55,7 +55,7 @@ class SumTree:
 
 
 class PrioritizedReplayBuffer:
-    def __init__(self, capacity, alpha=0.6, beta=0.4, beta_increment=0.001, epsilon=0.01):
+    def __init__(self, capacity: int, alpha: float = 0.6, beta: float = 0.4, beta_increment: float = 0.001, epsilon: float = 0.01):
         self.tree = SumTree(capacity)
         self.capacity = capacity
         self.alpha = alpha
@@ -64,12 +64,12 @@ class PrioritizedReplayBuffer:
         self.epsilon = epsilon
 
 
-    def push(self, transition):
+    def push(self, transition: tuple):
         max_priority = np.max(self.tree.tree[-self.capacity:]) if self.tree.size > 0 else 1.0
         self.tree.add(max_priority, transition)
 
 
-    def sample(self, batch_size):
+    def sample(self, batch_size: int):
         batch = []
         indices = []
         weights = np.empty(batch_size, dtype=np.float32)
@@ -97,7 +97,7 @@ class PrioritizedReplayBuffer:
                 np.array(next_states), np.array(dones)), indices, weights
 
 
-    def update_priorities(self, tree_indices, td_errors):
+    def update_priorities(self, tree_indices: list, td_errors: np.ndarray):
         priorities = (np.abs(td_errors) + self.epsilon) ** self.alpha
         for idx, p in zip(tree_indices, priorities):
             self.tree.update(idx, p)
