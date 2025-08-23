@@ -95,12 +95,5 @@ tensorboard --logdir=tensorboard_logs
 4. ** Epsilon-Greedy**: Balanced exploration/exploitation
 
 ### Network Architecture
-```
-Input: (4, 84, 84) stacked grayscale frames
-├── Conv2D(32, 8×8, stride=4) + ReLU
-├── Conv2D(64, 4×4, stride=2) + ReLU  
-├── Conv2D(64, 3×3, stride=1) + ReLU
-├── Flatten
-├── Linear(512) + ReLU
-└── Linear(action_space_size)
-```
+
+![CNN Architecture](plots/conv_nn_architecture.svg)

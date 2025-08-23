@@ -96,6 +96,7 @@ def objective(trial: optuna.Trial) -> float:
     }
 
     env = create_env(env_id="ALE/SpaceInvaders-v5", render_mode=None, frame_skip=FRAME_SKIP, num_stack=NUM_STACK, life_lost_penalty=LIFE_LOST_PENALTY, missed_shot_penalty=MISSED_SHOT_PENALTY)
+    
     agent_instance = Agent(action_space_size=env.action_space.n,
                              learning_rate=params['learning_rate'],
                              gamma=params['gamma'],
@@ -119,7 +120,7 @@ def objective(trial: optuna.Trial) -> float:
     return np.mean(scores[-100:]) if len(scores) >= 100 else -1.0
 
 
-def optimize_hyperparameters(n_trials: int=100):
+def optimize_hyperparameters(n_trials: int = 100):
     study_name = "ddqn_hyperparam_optimization"
     storage_path = get_study_storage_path("ddqn_study.db")
     

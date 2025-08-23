@@ -1,13 +1,10 @@
 import numpy as np
 
+from src.environment import create_env
+from src.agent import Agent
+
 
 def evaluate_agent(agent, env, num_episodes=10, render=False):
-    """
-    Evaluate trained agent performance
-    
-    Returns:
-        dict: Evaluation metrics (mean_reward, std_reward, success_rate)
-    """
     scores = []
     for episode in range(num_episodes):
         obs, _ = env.reset()
@@ -28,3 +25,16 @@ def evaluate_agent(agent, env, num_episodes=10, render=False):
         'min_reward': np.min(scores),
         'max_reward': np.max(scores)
     }
+
+
+def main():
+    env_manager = create_env(env_id="ALE/SpaceInvaders-v5", render_mode='human')
+    agent = Agent(action_space_size=env_manager.action_space.n, eval_mode=True)
+    agent.local_model.load_model_weights('best_ddqn_agent.pth')
+
+    evaluation_results = evaluate_agent(agent, env_manager)
+    print("Evaluation results:")
+    for key, value in evaluation_results.items():
+        print(f"  {key}: {value}")
+
+    env_manager.close()
