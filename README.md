@@ -1,43 +1,50 @@
 # Deep Reinforcement Learning - Space Invaders
 
-A comprehensive Deep Q-Network (DQN) implementation for training an AI agent to master Atari Space Invaders using PyTorch and OpenAI Gymnasium.
+A comprehensive Deep Q-Network (DQN) implementation for training an Agent to master Atari Space Invaders using PyTorch and OpenAI Gymnasium.
 
 ## Project Overview
 
-This project implements a **Double Deep Q-Network (DDQN)** agent that learns to play Space Invaders through reinforcement learning. The implementation features advanced training techniques, comprehensive metrics tracking, hyperparameter optimization, and robust checkpoint management.
+This project implements a **Double Deep Q-Network (DDQN)** agent that learns to play Space Invaders through reinforcement learning.
 
-### Key Features
+### Features
 
-- ** Double Deep Q-Network (DDQN)** with target network stabilization
-- ** Experience Replay Buffer** for improved sample efficiency
-- ** Custom Reward Shaping** with life loss and missed shot penalties
-- ** Advanced Metrics Tracking** with TensorBoard integration
-- ** Automatic Checkpointing** and seamless training resumption
-- ** Frame Stacking & Preprocessing** for enhanced state representation
-- ** Epsilon-Greedy Exploration** with exponential decay scheduling
-- ** Hyperparameter Optimization** using Optuna framework
-- ** Comprehensive Visualization** tools for training analysis
+- **Double Deep Q-Network (DDQN)** with target network stabilization  
+- **Experience Replay Buffer** for improved sample efficiency  
+- **Custom Reward Shaping** with life loss and missed shot penalties  
+- **Advanced Metrics Tracking** with TensorBoard integration  
+- **Automatic Checkpointing** and seamless training resumption  
+- **Frame Stacking & Preprocessing** for enhanced state representation  
+- **Epsilon-Greedy Exploration** with exponential decay scheduling  
+- **Hyperparameter Optimization** using Optuna framework  
+- **Comprehensive Visualization** tools for training analysis  
 
 ## Project Architecture
 
 ```
-DeepRL_SpaceInvaders_project/
+DeepRL_SpaceInvaders/
+├── scripts/
+│   ├── __innit__.py                
+│   ├── evaluate_agent.py              
+│   └── watch_agent.py
 ├── src/
+│   ├── __innit__.py 
 │   ├── agent.py                    # DDQN Agent implementation
 │   ├── environment.py              # Environment wrapper and preprocessing
+│   ├── model.py                    # 
+│   ├── replay.py                   # 
 │   ├── utils.py                    # Utility functions for paths and logging
 │   └── training/
+│       ├── __innit__.py 
 │       ├── train.py                # Main training script
-│       ├── hyperparamoptim.py      # Hyperparameter optimization
+│       ├── hyperparamoptim.py      # Main Hyperparameter optimization script
 │       ├── metrics.py              # Metrics tracking and analysis
 │       ├── plot.py                 # Visualization utilities
 │       └── config.yaml             # Training configuration parameters
 ├── logs/                           # Training logs and checkpoints
-├── plots/                          # Generated training visualizations
-├── tensorboard_logs/               # TensorBoard monitoring logs
+├── plots/                          # Generated training and hyperparameter optimalization visualizations
 ├── models/                         # Saved model weights
 ├── requirements.txt                # Python dependencies
-└── README.md                      # This documentation
+└── README.md                       # Documentation
 ```
 
 
@@ -65,35 +72,69 @@ DeepRL_SpaceInvaders_project/
 
 ### Training the Agent
 
-Start training with default configuration:
+Starting training (or resume):
 ```bash
-python src/training/train.py
+python -m src.training.train
 ```
-
 
 ### Hyperparameter Optimization
 
-Optimize hyperparameters using Optuna:
+Optimizing hyperparameters using Optuna (the optuna study can be opened with: optuna-dashboard sqlite:///logs/optuna/ddqn_study.db):
 ```bash
-python src/training/hyperparamoptim.py
+python -m src.training.hyperparamoptim
+```
+
+### Evaluating a Trained Agent
+
+Evaluating the performance of a saved model checkpoint:
+```bash
+python -m scripts.evaluate_agent
+```
+
+### Watching the Agent Play
+
+Rendering the agent playing Space Invaders (also saves it as a GIF):
+```bash
+python -m scripts.watch_agent
 ```
 
 ### Monitoring Training
 
-Launch TensorBoard for real-time monitoring:
+Launching TensorBoard for real-time monitoring:
 ```bash
-tensorboard --logdir=tensorboard_logs
+tensorboard --logdir=logs
 ```
 
 ## Model Architecture
 
 ### DDQN Agent Components
 
-1. ** Main Network**: Current Q-value estimation
-2. ** Target Network**: Stable Q-value targets (soft updates)
-3. ** Experience Replay**: Decorrelated sample buffer
-4. ** Epsilon-Greedy**: Balanced exploration/exploitation
+1. **Main Network**: Current Q-value estimation  
+2. **Target Network**: Stable Q-value targets with soft updates
+3. **Experience Replay**: Decorrelated sample buffer  
+4. **Epsilon-Greedy**: Balanced exploration/exploitation  
 
 ### Network Architecture
 
-![CNN Architecture](plots/conv_nn_architecture.svg)
+![CNN Architecture](plots/conv_nn_architecture.png)
+
+---
+
+## Performance & Results
+
+My DDQN agent demonstrates strong performance on the Atari Space Invaders environment. Through extensive training and hyperparameter optimization, the agent consistently achieves high scores and exhibits robust gameplay strategies.
+
+- **Sample Efficiency:** The use of experience replay and target networks accelerates learning and stabilizes training.
+- **Reward Progression:** Average episode rewards increase steadily, with the agent learning to avoid unnecessary life loss and maximize shooting accuracy.
+- **Generalization:** The trained agent adapts well to unseen game situations, leveraging learned policies for effective decision-making.
+- **Visualization:** Training curves and evaluation metrics are available in the `plots/` directory, providing clear insights into agent improvement over time.
+
+**Example Training Curve:**
+
+![Training Reward Curve](plots/training_rewards_old.png)
+
+> *The agent achieves a mean score of **270** after **12000 episodes** of training, outperforming random and naive baselines.*
+
+For detailed metrics and visualizations, refer to the `plots/` folder and TensorBoard logs.
+
+---

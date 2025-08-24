@@ -1,6 +1,9 @@
-logs/
-models/
-plots/
+logs/*
+models/*
+plots/*
+!plots/
+!plots/training_rewards_old.png
+!plots/conv_nn_architecture.png
 *.pdf
 
 # Byte-compiled / optimized / DLL files
