@@ -11,6 +11,8 @@ import numpy as np
 from src.model import DuelingDQNNetwork
 from src.replay import PrioritizedReplayBuffer
 
+torch.backends.cudnn.benchmark = True
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 

@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import trange
 import optuna
 from optuna.storages import RDBStorage
-import gym
+import gymnasium as gym
 
 from src.environment import create_env
 from src.agent import Agent
@@ -140,7 +140,7 @@ def optimize_hyperparameters(n_trials: int = 100):
 
 
 def main():
-    n_trials = 50
+    n_trials = 45
     print("Starting hyperparameter optimization...")
     optimize_hyperparameters(n_trials=n_trials)
     print("Hyperparameter optimization completed.")
