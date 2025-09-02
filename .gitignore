@@ -4,6 +4,7 @@ plots/*
 !plots/
 !plots/training_rewards_old.png
 !plots/conv_nn_architecture.png
+!logs/ddqn_study.db
 *.pdf
 
 # Byte-compiled / optimized / DLL files
