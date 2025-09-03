@@ -23,18 +23,18 @@ This project implements a **Double Deep Q-Network (DDQN)** agent that learns to 
 ```
 DeepRL_SpaceInvaders/
 ├── scripts/
-│   ├── __innit__.py                
-│   ├── evaluate_agent.py              
-│   └── watch_agent.py
+│   ├── __init__.py                # Package initialization for scripts module
+│   ├── evaluate_agent.py          # Agent evaluation and performance testing script
+│   └── watch_agent.py             # Agent gameplay visualization and GIF generation script
 ├── src/
-│   ├── __innit__.py 
-│   ├── agent.py                    # DDQN Agent implementation
-│   ├── environment.py              # Environment wrapper and preprocessing
-│   ├── model.py                    # 
-│   ├── replay.py                   # 
-│   ├── utils.py                    # Utility functions for paths and logging
+│   ├── __init__.py                # Package initialization for source module
+│   ├── agent.py                   # DDQN Agent implementation
+│   ├── environment.py             # Environment wrapper and preprocessing
+│   ├── model.py                   # Neural network architecture and model definitions
+│   ├── replay.py                  # Experience replay buffer implementation
+│   ├── utils.py                   # Utility functions for paths and logging
 │   └── training/
-│       ├── __innit__.py 
+│       ├── __init__.py 
 │       ├── train.py                # Main training script
 │       ├── hyperparamoptim.py      # Main Hyperparameter optimization script
 │       ├── metrics.py              # Metrics tracking and analysis
@@ -58,8 +58,8 @@ DeepRL_SpaceInvaders/
 
 2. **Create and activate conda environment:**
    ```bash
-   conda create -n rl python=3.10
-   conda activate rl
+   conda create -n env_name python=3.10
+   conda activate env_name
    ```
 
 3. **Install dependencies:**
