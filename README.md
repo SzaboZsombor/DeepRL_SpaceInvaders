@@ -11,23 +11,23 @@ This project implements a **Double Deep Q-Network (DDQN)** agent that learns to 
 - **Double Deep Q-Network (DDQN)** with target network stabilization  
 - **Experience Replay Buffer** for improved sample efficiency  
 - **Custom Reward Shaping** with life loss and missed shot penalties  
-- **Advanced Metrics Tracking** with TensorBoard integration  
+- **Metrics Tracking** with TensorBoard integration  
 - **Automatic Checkpointing** and seamless training resumption  
 - **Frame Stacking & Preprocessing** for enhanced state representation  
 - **Epsilon-Greedy Exploration** with exponential decay scheduling  
 - **Hyperparameter Optimization** using Optuna framework  
-- **Comprehensive Visualization** tools for training analysis  
+- **Visualization** tools for training analysis  
 
 ## Project Architecture
 
 ```
 DeepRL_SpaceInvaders/
 ├── scripts/
-│   ├── __init__.py                # Package initialization for scripts module
+│   ├── __init__.py                
 │   ├── evaluate_agent.py          # Agent evaluation and performance testing script
 │   └── watch_agent.py             # Agent gameplay visualization and GIF generation script
 ├── src/
-│   ├── __init__.py                # Package initialization for source module
+│   ├── __init__.py                
 │   ├── agent.py                   # DDQN Agent implementation
 │   ├── environment.py             # Environment wrapper and preprocessing
 │   ├── model.py                   # Neural network architecture and model definitions
@@ -131,10 +131,10 @@ My DDQN agent demonstrates strong performance on the Atari Space Invaders enviro
 
 **Example Training Curve:**
 
-![Training Reward Curve](plots/training_rewards_old.png)
+![Training Reward Curve](plots/training_progress_final.png)
 
-> *The agent achieves a mean score of **270** after **12000 episodes** of training, outperforming random and naive baselines.*
+> *The agent achieves a mean score of **420** after **8000 episodes** of training and the best average episode reward is **1249**.*
 
-For detailed metrics and visualizations, refer to the `plots/` folder and TensorBoard logs.
+For detailed metrics and visualizations, refer to the `plots/` and 'logs/' folders.
 
 ---
