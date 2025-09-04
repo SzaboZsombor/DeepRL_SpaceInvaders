@@ -1,19 +1,20 @@
 import time
 import imageio
+import os
 
 from src.environment import create_env
 from src.agent import Agent
-from src.utils import get_plots_path
+from src.utils import get_plots_dir
 
 
-def save_gif(frames: list[float, float, float], filename: str, fps: int = 10):
-    file_path = get_plots_path(filename)
-    imageio.mimsave(file_path, frames, duration=1/fps)
+def save_gif(frames: list[float, float, float], filename: str, fps: int = 15):
+    file_path = os.path.join(get_plots_dir(), filename)
+    imageio.mimsave(file_path, frames, fps = fps, loop = 0)
     print(f"GIF saved to {file_path}")
 
 
 def main():
-    env_manager = create_env(env_id="ALE/SpaceInvaders-v5", render_mode='human')
+    env_manager = create_env(env_id="ALE/SpaceInvaders-v5", render_mode='rgb_array')
     agent = Agent(action_space_size=env_manager.action_space.n, eval_mode=True)
     agent.local_model.load_model_weights('best_ddqn_agent.pth')
 
@@ -24,15 +25,28 @@ def main():
     truncated = False
     total_reward = 0
     frames = []
+    step_count = 0
+
+    start_recording_after = 35  # Skipping first 35 steps
+    max_frames = 120  
 
     while not done and not truncated:
-        frames.append(env_manager.render(mode='rgb_array'))
+        frame = env_manager.render()
+
+        if step_count >= start_recording_after:
+            frames.append(frame)
+
+
+        if len(frames) >= max_frames:
+            print(f"Reached maximum frames ({max_frames}), stopping recording...")
+            break
 
         action = agent.act(observation)
         next_observation, reward, done, truncated, info = env_manager.step(action)
         observation = next_observation
 
         total_reward += reward
+        step_count += 1
 
         print(f"Action: {action}, Reward: {reward}, Done: {done}, Truncated: {truncated}")
         time.sleep(0.1)
