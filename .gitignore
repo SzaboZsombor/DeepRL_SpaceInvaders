@@ -7,7 +7,6 @@ plots/*
 !plots/agent_playing.gif
 !logs/ddqn_study.db
 !logs/final_progress.pkl
-!logs/tensorboard_logs/
 !models/best_ddqn_agent.pth
 *.pdf
 
