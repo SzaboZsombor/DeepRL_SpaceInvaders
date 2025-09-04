@@ -1,12 +1,13 @@
 # Deep Reinforcement Learning - Space Invaders
 
-A comprehensive Deep Q-Network (DQN) implementation for training an Agent to master Atari Space Invaders using PyTorch and OpenAI Gymnasium.
+A Deep Q-Network (DQN) implementation for training an Agent to master Atari Space Invaders using PyTorch and OpenAI Gymnasium.
 
 ## Project Overview
 
 This project implements a **Double Deep Q-Network (DDQN)** agent that learns to play Space Invaders through reinforcement learning.
 
-![Agent Playing Space Invaders](plots/agent_playing.gif)
+<img src="plots/agent_playing.gif" alt="Agent Playing Space Invaders" width="600"/>
+
 
 *The trained DDQN agent demonstrating gameplay in Space Invaders*
 
@@ -29,7 +30,8 @@ DeepRL_SpaceInvaders/
 ├── scripts/
 │   ├── __init__.py                
 │   ├── evaluate_agent.py          # Agent evaluation and performance testing script
-│   └── watch_agent.py             # Agent gameplay visualization and GIF generation script
+│   ├── save_agent_playing.py      # Agent gameplay saving as GIF script
+│   └── watch_agent.py             # Agent gameplay visualization script
 ├── src/
 │   ├── __init__.py                
 │   ├── agent.py                   # DDQN Agent implementation
@@ -44,7 +46,7 @@ DeepRL_SpaceInvaders/
 │       ├── metrics.py              # Metrics tracking and analysis
 │       ├── plot.py                 # Visualization utilities
 │       └── config.yaml             # Training configuration parameters
-├── logs/                           # Training logs and checkpoints
+├── logs/                           # Training and hyperparameter optimalization logs and checkpoints
 ├── plots/                          # Generated training and hyperparameter optimalization visualizations
 ├── models/                         # Saved model weights
 ├── requirements.txt                # Python dependencies
@@ -56,7 +58,7 @@ DeepRL_SpaceInvaders/
 
 1. **Clone the repository:**
    ```bash
-   git clone <your-repository-url>
+   git clone https://github.com/SzaboZsombor/DeepRL_SpaceInvaders.git
    cd DeepRL_SpaceInvaders_project
    ```
 
@@ -97,9 +99,16 @@ python -m scripts.evaluate_agent
 
 ### Watching the Agent Play
 
-Rendering the agent playing Space Invaders (also saves it as a GIF):
+Rendering the agent playing Space Invaders:
 ```bash
 python -m scripts.watch_agent
+```
+
+### Saving the Agent Playing as GIF
+
+Saving the agent playing Space Invaders as a GIF:
+```bash
+python -m scripts.save_agent_playing
 ```
 
 ### Monitoring Training
@@ -139,6 +148,6 @@ My DDQN agent demonstrates strong performance on the Atari Space Invaders enviro
 
 > *The agent achieves a mean score of **420** after **8000 episodes** of training and the best average episode reward is **1249**.*
 
-For detailed metrics and visualizations, refer to the `plots/` and 'logs/' folders.
+For detailed metrics and visualizations, refer to the `plots/` and `logs/` folders.
 
 ---
