@@ -1,3 +1,7 @@
+logs/tensorboard_logs/
+*.tfevents.*
+events.out.tfevents.*
+
 logs/*
 models/*
 plots/*
