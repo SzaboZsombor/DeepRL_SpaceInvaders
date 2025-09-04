@@ -6,6 +6,10 @@ A comprehensive Deep Q-Network (DQN) implementation for training an Agent to mas
 
 This project implements a **Double Deep Q-Network (DDQN)** agent that learns to play Space Invaders through reinforcement learning.
 
+![Agent Playing Space Invaders](plots/agent_playing.gif)
+
+*The trained DDQN agent demonstrating gameplay in Space Invaders*
+
 ### Features
 
 - **Double Deep Q-Network (DDQN)** with target network stabilization  

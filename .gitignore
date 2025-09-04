@@ -4,6 +4,7 @@ plots/*
 !plots/
 !plots/training_progress_final.png
 !plots/conv_nn_architecture.png
+!plots/agent_playing.gif
 !logs/ddqn_study.db
 !logs/final_progress.pkl
 !logs/tensorboard_logs/
