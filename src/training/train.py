@@ -9,6 +9,7 @@ from src.agent import Agent
 from src.environment import create_env
 from src.utils import get_logs_dir, get_plots_dir, get_tensorboard_logs_dir
 from src.training.metrics import MetricsTracker
+from src.training.plot import plot_training_progress
 
 
 with open(os.path.join(os.path.dirname(__file__), "config.yaml"), "r") as f:
@@ -85,6 +86,11 @@ def train_agent(episodes: int = 10000, max_steps: int = 10000, weights_output_na
     best_score, start_episode, scores, custom_scores = load_training_state(metrics, agent)
 
     agent_checkpoint_path = f"{get_logs_dir()}/agent_checkpoint.pth"
+
+    if start_episode >= episodes:
+        print(f"Training already completed. Current episode: {start_episode}, Target episodes: {episodes}")
+        print("Increase the target episodes or start fresh training.")
+        return metrics
 
     for episode in trange(start_episode, episodes, desc="Training Progress"):
         episode_start_time = time.time()
@@ -180,7 +186,7 @@ def train_agent(episodes: int = 10000, max_steps: int = 10000, weights_output_na
 
 def main():
     print("Starting training...")
-    episodes = 20000
+    episodes = 15000
     max_steps = 10000
 
     weights_output_name = "best_ddqn_agent.pth"
@@ -209,10 +215,21 @@ def main():
     report = final_metrics.generate_training_report()
     print(report)
 
-    training_metrics_plot_path = os.path.join(get_plots_dir(), 'training_progress.png')
-    final_metrics.plot_training_progress(save_path=training_metrics_plot_path)
-
     final_metrics.close_tensorboard()
+    
+    scores_file = f"{get_logs_dir()}/training_game_scores.npy" 
+    
+    print("Loading training data...")
+    scores = np.load(scores_file)
+    
+    print(f"Loaded {len(scores)} episodes of training data")
+    print(f"Score range: {scores.min():.1f} to {scores.max():.1f}")
+    
+    plot_training_progress(
+        episode_rewards=scores.tolist(),
+        moving_average_window=100,
+        file_name="training_progress_final"
+    )
 
 if __name__ == "__main__":
     main()

@@ -2,9 +2,11 @@ logs/*
 models/*
 plots/*
 !plots/
-!plots/training_rewards_old.png
+!plots/training_progress_final.png
 !plots/conv_nn_architecture.png
 !logs/ddqn_study.db
+!logs/final_progress.pkl
+!logs/tensorboard_logs/
 *.pdf
 
 # Byte-compiled / optimized / DLL files
