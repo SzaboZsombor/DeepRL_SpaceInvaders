@@ -59,13 +59,13 @@ DeepRL_SpaceInvaders/
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/SzaboZsombor/DeepRL_SpaceInvaders.git
-   cd DeepRL_SpaceInvaders_project
+   cd DeepRL_SpaceInvaders
    ```
 
-2. **Create and activate conda environment:**
+2. **Create and activate virtual environment (Linux):**
    ```bash
-   conda create -n env_name python=3.10
-   conda activate env_name
+   python3 -m env env_name
+   source env_name/bin/activate
    ```
 
 3. **Install dependencies:**
